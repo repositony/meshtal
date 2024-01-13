@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+    branches: ["main", "dev"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main branch
+        uses: actions/checkout@v3
+
+      - name: Compile the crate
+        run: cargo build --verbose
+
+      - name: Run all tests
+        run: cargo test --verbose
