@@ -13,6 +13,8 @@
 
 *This is a pre-release version for testing and development. The core library is written, so it is just matter of finding the time to extend all the high-level features and functionality*
 
+See the full crate documentation [here](https://repositony.github.io/meshtal/index.html).
+
 ## Install
 
 Direct from github:
@@ -592,10 +594,10 @@ Genuinely assumed the number of people who care about such a niche application
 implemented in Rust was a big fat zero. The command line interface is a set of
 QoL tools written for colleagues.
 
-Fortunately this is part of my personal analysis framework so the crate is well
-documented. The crate itself is a actually lot more useful to those who use
-Rust since the challenge with meshtal files is always trying to parse the old
-MCNP outputs.
+This is part of my personal analysis framework so the crate is well
+[documented](https://repositony.github.io/meshtal/index.html). The crate itself
+is actually far more useful to Rustaceans the challenge with meshtal files is
+always in trying to parse the horrible old MCNP outputs.
 
 This crate allows you to read any format into a struct with a one-liner, and
 from there you can do whatever you want with the mesh data. All mesh formats
