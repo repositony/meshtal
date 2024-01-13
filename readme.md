@@ -1,6 +1,13 @@
 # Meshtal
 
-[![tests](https://github.com/repositony/meshtal/actions/workflows/tests.yml/badge.svg)](https://github.com/repositony/meshtal/actions/workflows/tests.yml)
+[![Build Status][test-img]][test-url]
+[![Documentation][doc-img]][doc-url]
+
+[test-img]: https://github.com/repositony/meshtal/actions/workflows/tests.yml/badge.svg
+[test-url]: https://github.com/repositony/meshtal/actions/workflows/build_tests.yml
+
+[doc-img]: https://github.com/repositony/pagerony/actions/workflows/rust.yml/badge.svg
+[doc-url]: https://repositony.github.io/meshtal/index.html
 
 **A collection of useful analysis tools for interacting with MCNP meshtal files**
 
