@@ -37,8 +37,8 @@ jobs:
       - name: Build documentation
         run: cargo doc --no-deps
 
-      - name: Add redirect for index.html
-        run: echo '<meta http-equiv="refresh" content="0;url=index.html">' > target/doc/index.html
+      - name: Add redirect
+        run: echo '<meta http-equiv="refresh" content="0;url=meshtal/index.html">' > target/doc/index.html
 
       - name: Remove lock file
         run: rm target/doc/.lock
@@ -55,7 +55,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
-
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
