@@ -6,8 +6,8 @@
 [test-img]: https://github.com/repositony/meshtal/actions/workflows/tests.yml/badge.svg
 [test-url]: https://github.com/repositony/meshtal/actions/workflows/build_tests.yml
 
-[doc-img]: https://github.com/repositony/pagerony/actions/workflows/rust.yml/badge.svg
-[doc-url]: https://repositony.github.io/meshtal/index.html
+[doc-img]: https://github.com/repositony/meshtal/actions/workflows/documentation.yml/badge.svg?event=page_build
+[doc-url]: https://repositony.github.io/meshtal/meshtal/doc/index.html
 
 **A collection of useful analysis tools for interacting with MCNP meshtal files**
 
