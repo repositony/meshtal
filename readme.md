@@ -13,7 +13,7 @@
 
 *This is a pre-release version for testing and development. The core library is written, so it is just matter of finding the time to extend all the high-level features and functionality*
 
-See the full crate documentation [here](https://repositony.github.io/meshtal/index.html).
+Full library documentation [here](https://repositony.github.io/meshtal/index.html)
 
 ## Install
 
@@ -90,7 +90,7 @@ about them, let alone uses them. They are currently a low priority.
 
 ## Command line tools
 
-### Tool - Mesh2vtk
+### Mesh2vtk tool
 
 Convert mesh tallies to VTK formats for plotting
 
@@ -106,7 +106,7 @@ values, examples, and any important behaviour.
 
 By default, the results of every time/energy bin are extracted
 
-#### > How to include errors
+#### How to include errors
 
 Corresponding uncertainty meshes are optional in case of large meshtal files.
 
@@ -115,7 +115,7 @@ Corresponding uncertainty meshes are optional in case of large meshtal files.
 mesh2vtk /path/to/meshtal.msht 104 --errors
 ```
 
-#### > How to only use the 'Total' energy/time group?
+#### How to only use the 'Total' energy/time group?
 
 Often only the `Total` energy/time bins are of interest, and a quick way of
 only converting this subset is provided.
@@ -125,7 +125,7 @@ only converting this subset is provided.
 mesh2vtk /path/to/meshtal.msht 104 --total
 ```
 
-#### > How to choose specific energy/time groups
+#### How to choose specific energy/time groups
 
 If specific energy or time groups are required,
 
@@ -143,7 +143,7 @@ and `TMESH` cards.
 cards. i.e the energy group `1.0` corresponds to the `0.0>=E<1.0` bin,
 though in reality 1 MeV particle would end up in the next group up.*
 
-#### > How to rescale all values
+#### How to rescale all values
 
 Mcnp normalises everything so it is often the case that the results must be
 rescaled to provide physical values.
@@ -155,7 +155,7 @@ mesh2vtk /path/to/meshtal.msht 104 --scale 6.50E+18
 
 Mesh rotations are a work in progress.
 
-#### Cylindrical meshes
+#### How to plot cylindrical meshes
 
 There is no VTK representation of cylindrical meshes, so an unstructured
 mesh is generated from verticies based on the RZT bounds.
@@ -174,7 +174,7 @@ mesh2vtk /path/to/meshtal.msht 104 --resolution 3
 Note that this will increase the file size and memory usage significantly
 in some cases.
 
-#### > How to change the output file name
+#### How to change the output file name
 
 By default the file prefix is `fmesh`, so the output files will be
 `fmesh_<number>.vtk`. This may be changed as needed.
@@ -184,7 +184,7 @@ By default the file prefix is `fmesh`, so the output files will be
 mesh2vtk /path/to/meshtal.msht 104 --output myvtk
 ```
 
-#### > How to choose a Vtk format
+#### How to choose a Vtk format
 
 Most useful may be the ability to decide on output formats. XML and legacy
 formats are supported, with both ascii and binary variants.
@@ -194,7 +194,7 @@ formats are supported, with both ascii and binary variants.
 mesh2vtk /path/to/meshtal.msht 104 --format legacy-binary
 ```
 
-#### > How to specify compression and byte order
+#### How to specify compression and byte order
 
 For more advanced usage, things like byte ordering and xml compression
 methods are also configurable.
@@ -214,7 +214,7 @@ as the default.*
 
 </details>
 
-### Tool - Mesh2ww
+### Mesh2ww tool
 
 Conversion of meshes to MCNP mesh-based global weight windows
 
@@ -313,7 +313,7 @@ mesh2ww NP_tallies.msht 14                   +      \
 
 </details>
 
-### Tool - Pointextract
+### Pointextract tool
 
 Extracts point data from any mesh in a meshtal file.
 
@@ -462,7 +462,7 @@ made for doing somthing else with the results for easier parsing.*
 
 </details>
 
-### Tool - Splitmesh
+### Splitmesh tool
 
 Command line tool to split up meshtal files
 
@@ -484,7 +484,7 @@ values, examples, and any important behaviour.
 
 By default, every tally found in the file is splt into individual files.
 
-#### > How to choose specific tallies
+#### How to choose specific tallies
 
 Use the `--tallies`  option to specify one or more tallies to be separated
 out. Invalid entries are simply ignored.
@@ -494,7 +494,7 @@ out. Invalid entries are simply ignored.
 splitmesh /path/to/meshtal.msht --tallies 104 204 504
 ```
 
-#### > How to change the file names
+#### How to change the file names
 
 The name of the output files is appended with the tally number as
 `<output>_<id>.msht`. Output defaults to `fmesh`, but this may be changed.
@@ -506,7 +506,7 @@ splitmesh /path/to/meshtal.msht --output mymesh
 
 </details>
 
-### Tool - Posvol
+### Posvol tool
 
 Command line tool to inspect and convert posvol files
 
@@ -595,11 +595,11 @@ implemented in Rust was a big fat zero. The command line interface is a set of
 QoL tools written for colleagues.
 
 This is part of my personal analysis framework so the crate is well
-[documented](https://repositony.github.io/meshtal/index.html). The crate itself
-is actually far more useful to Rustaceans the challenge with meshtal files is
-always in trying to parse the horrible old MCNP outputs.
+[documented](https://repositony.github.io/meshtal/index.html). The library
+is actually far more useful than the CLI since the challenge with meshtal files
+is always in trying to parse the horrible old MCNP outputs.
 
-This crate allows you to read any format into a struct with a one-liner, and
+This crate allows any format to be read into a struct with a one-liner, and
 from there you can do whatever you want with the mesh data. All mesh formats
 are coerced into the same core `Mesh` structure.
 
