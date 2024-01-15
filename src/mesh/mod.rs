@@ -66,26 +66,3 @@ pub use crate::mesh::voxel::{Group, Voxel, VoxelCoordinate};
 
 #[doc(inline)]
 pub use crate::readers::{read_meshtal, read_meshtal_target};
-
-// #[test]
-// fn test_lib() {
-//     use crate::mesh;
-//     use crate::point::{self, Point};
-
-//     // Read mesh 104 from the meshtal file
-//     let mesh = mesh::read_meshtal_target("./data/example_104.msht", 104).unwrap();
-//     // print a summary of the mesh (Display trait impemented)
-//     println!("{mesh}");
-
-//     // points of interest
-//     let points = vec![
-//         Point::from_vec(&[20.5, 3.0, 52.7]).unwrap(),
-//         Point::from_vec(&[20.5, 4.0, 10.0]).unwrap(),
-//         Point::from_vec(&[-63.1, 15.0, 10.2]).unwrap(),
-//     ];
-
-//     // find the corresponding voxels and output results
-//     let voxels = point::find_voxels(&mesh, &points);
-//     let description = format!("fmesh{}, {:?}", mesh.id, mesh.geometry);
-//     point::results_to_console(&points, &voxels, &description);
-// }
