@@ -242,15 +242,15 @@ values, examples, and any important behaviour.
 #### Tuning weights
 
 Typical usage will generally define a de-tuning factor (`-p`/`--power`) and
-the relative error cutoff (`-e`/`--error`) for generating weights.
+possibly a relative error cutoff (`-e`/`--error`) for generating weights.
 
 ```bash
-mesh2ww run0.msht 104 --power 0.70 --error 0.1
+mesh2ww run0.msht 104 --power 0.70 --error 0.25
 ```
 
 The `--power` value modifies calculated weights by `w => w^(power)`, which
 helps with softening extreme values. Any voxels with errors above `--error`
-(10% in this case) continue to use analogue transport until the uncertainty
+(>25% in this case) continue to use analogue transport until the uncertainty
 imporves.
 
 #### Renaming output files

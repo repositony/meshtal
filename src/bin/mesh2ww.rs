@@ -22,7 +22,7 @@
 //! possibly a relative error cutoff (`-e`/`--error`) for generating weights.  
 //!
 //! ```bash
-//! mesh2ww run0.msht 104 --power 0.70 --error 0.1
+//! mesh2ww run0.msht 104 --power 0.70 --error 0.5
 //! ```
 //!
 //! The `--power` value modifies calculated weights by `w => w^(power)`, which
@@ -423,8 +423,11 @@ Typical examples
     Convert single tally with defaults  
         $ mesh2ww run0.msht 14
 
-    Change the softening factor and error cut  
-        $ mesh2ww run0.msht 14 -p 0.8 -e 0.1
+    Change the softening/de-tuning factor  
+        $ mesh2ww run0.msht 14 --power 0.8 
+
+    Only generate weights for voxels with <10% error
+        $ mesh2ww run0.msht 14 --error 0.1
 
     Only use the 'Total' energy/time groups 
         $ mesh2ww run0.msht 14 --total
@@ -600,7 +603,7 @@ fn arg_error() -> Arg {
             .value_delimiter(' ')
             .num_args(1..)
             .value_parser(value_parser!(f64))
-            .default_value("1.0") // horrible I know
+            .default_value("1.0")
             .value_name("value")
             .hide_default_value(true)
 }

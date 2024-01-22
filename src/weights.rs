@@ -12,7 +12,6 @@
 //!
 //! The only input required from the user is:
 //! - `power` for the de-tuning factor(s)
-//! - `max_error` to force any voxels with errors above a threshold to analogue
 //!
 //! In the current version, the flux ref is taken as the maximum flux in the
 //! group. Allowing the user to specify a location or user-defined reference
@@ -753,7 +752,7 @@ fn weight_from_voxels(mesh: &Mesh, voxels: &[Voxel], power: f64, max_error: f64)
     // Main calculation, very simple
     let mut wgt: Vec<(usize, f64)> = Vec::with_capacity(voxels.len());
     for (i, v) in voxels.iter().enumerate() {
-        let mut w = if v.error < max_error {
+        let mut w = if v.error <= max_error {
             (0.5 * (v.result / flux_ref)).powf(power)
         } else {
             0.0
@@ -824,7 +823,7 @@ fn collect_power_values(powers: &[f64], n_groups: usize) -> Vec<f64> {
 ///
 /// - Multiple errors - apply each error tolerance to its respective group
 /// - Single error - apply the same error tolerance to evey group
-/// - Empty list - default to 0.1 (10%)
+/// - Empty list - default to 1.0 (100%)
 ///
 /// If the length of the multiple errors list is not valid, the first tolerance
 /// is applied to all groups and a warning raised.
@@ -833,8 +832,8 @@ fn collect_error_values(errors: &[f64], n_groups: usize) -> Vec<f64> {
 
     match n_errors {
         0 => {
-            warn!("Warning: No error tolerance provided, defaulting to 0.1");
-            [0.1].repeat(n_groups)
+            warn!("Warning: No error tolerance provided, defaulting to 1.0");
+            [1.0].repeat(n_groups)
         }
         1 => errors.repeat(n_groups),
         _ => {
@@ -843,8 +842,8 @@ fn collect_error_values(errors: &[f64], n_groups: usize) -> Vec<f64> {
             } else {
                 warn!("Warning: Error tolerences != number of groups");
                 warn!("  - Expected {}, found {}", n_groups, n_errors);
-                warn!("  - Setting all error cuts to 0.1");
-                [0.1].repeat(n_groups)
+                warn!("  - Setting all error cuts to 1.0");
+                [1.0].repeat(n_groups)
             }
         }
     }
