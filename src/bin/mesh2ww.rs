@@ -88,6 +88,7 @@
 //!         E_tallies.msht  34 --total                  \\
 //! ```
 //!
+#![doc(hidden)]
 
 // standard library
 use std::env;
@@ -101,13 +102,11 @@ use meshtal::weights::{self, WeightWindow};
 
 // external crates
 use anyhow::{anyhow, Result};
-use clap::{value_parser, Arg, ArgAction, Command};
+use clap::{value_parser, Arg, ArgAction, ArgMatches, Command};
 use log::*;
 
-#[doc(hidden)]
 type ArgSet = Vec<String>;
 
-#[doc(hidden)]
 fn main() -> Result<()> {
     // short circuit for help messages
     if help_flags() {
@@ -121,76 +120,79 @@ fn main() -> Result<()> {
     // through Clap to verify the arguments
     let arg_sets = process_argument_sets();
 
-    // collect up all weight windows, just exclude any missing and warn the user
-    info!("Getting weights");
-    let particle_weights = collect_weight_windows(arg_sets)?;
-
-    // Write the weight window file
-    let output = output_args().unwrap_or("wwinp".to_string());
-    debug!("Output = \"{output}\"");
-
-    info!("Writing to {output}");
-    weights::write_multi_particle(&particle_weights, &output, is_padded());
-
-    for ww in particle_weights {
-        info!(
-            "Weighted voxels {:.2}% ({:?})",
-            ww.non_analogue_percentage(),
-            ww.particle
-        );
+    for c in arg_sets {
+        println!("power = {:?}", c.power);
+        println!("error = {:?}", c.error);
     }
 
-    info!("Conversion complete");
+    // collect up all weight windows, just exclude any missing and warn the user
+    // info!("Getting weights");
+    // let particle_weights = collect_weight_windows(arg_sets)?;
+
+    // // Write the weight window file
+    // let output = output_args().unwrap_or("wwinp".to_string());
+    // debug!("Output = \"{output}\"");
+
+    // info!("Writing to {output}");
+    // weights::write_multi_particle(&particle_weights, &output, is_padded());
+
+    // for ww in particle_weights {
+    //     info!(
+    //         "Weighted voxels {:.2}% ({:?})",
+    //         ww.non_analogue_percentage(),
+    //         ww.particle
+    //     );
+    // }
+
+    // info!("Conversion complete");
     Ok(())
 }
 
-#[doc(hidden)]
 #[derive(Debug)]
 struct Cli {
     meshtal: String,
     number: u32,
-    power: f64,
-    error: f64,
+    power: Vec<f64>,
+    error: Vec<f64>,
     total: bool,
     scale: f64,
 }
 
-#[doc(hidden)]
-fn collect_weight_windows(arg_sets: Vec<Cli>) -> Result<Vec<WeightWindow>> {
-    let mut particle_weights: Vec<WeightWindow> = Vec::with_capacity(arg_sets.len());
-    for cli in &arg_sets {
-        // read mesh data from the meshtal file
-        info!("Reading {}", &cli.meshtal);
-        let mesh = try_meshtal_read(cli)?;
+//
+// fn collect_weight_windows(arg_sets: Vec<Cli>) -> Result<Vec<WeightWindow>> {
+//     let mut particle_weights: Vec<WeightWindow> = Vec::with_capacity(arg_sets.len());
+//     for cli in &arg_sets {
+//         // read mesh data from the meshtal file
+//         info!("Reading {}", &cli.meshtal);
+//         let mesh = try_meshtal_read(cli)?;
 
-        // todo: ok so annoyingly the particle checking has to be done here
-        // todo: getting more and more worth having a preprocessing step
-        // todo: probably needs a new reader or short circuit in existing
-        if particle_weights
-            .iter()
-            .any(|ww| ww.particle == mesh.particle)
-        {
-            info!("{:?} type already included, skipping...", mesh.particle);
-            continue;
-        }
+//         // todo: ok so annoyingly the particle checking has to be done here
+//         // todo: getting more and more worth having a preprocessing step
+//         // todo: probably needs a new reader or short circuit in existing
+//         if particle_weights
+//             .iter()
+//             .any(|ww| ww.particle == mesh.particle)
+//         {
+//             info!("{:?} type already included, skipping...", mesh.particle);
+//             continue;
+//         }
 
-        // convert mesh into WWMesh object for writing/further manipulation
-        info!("Generating voxel weights");
-        let mut ww = weights::mesh_to_ww(&mesh, cli.power, cli.error, cli.total);
+//         // convert mesh into WWMesh object for writing/further manipulation
+//         info!("Generating voxel weights");
+//         let mut ww = weights::mesh_to_ww(&mesh, cli.power, cli.error, cli.total);
 
-        // Multiply weights by a constant factor if one is provided
-        if cli.scale != 1.0 {
-            info!("Scaling results by {}", cli.scale);
-            ww.scale(cli.scale);
-        }
+//         // Multiply weights by a constant factor if one is provided
+//         if cli.scale != 1.0 {
+//             info!("Scaling results by {}", cli.scale);
+//             ww.scale(cli.scale);
+//         }
 
-        particle_weights.push(ww);
-    }
+//         particle_weights.push(ww);
+//     }
 
-    Ok(particle_weights)
-}
+//     Ok(particle_weights)
+// }
 
-#[doc(hidden)]
 fn process_argument_sets() -> Vec<Cli> {
     split_argument_sets()
         .iter()
@@ -205,7 +207,6 @@ fn process_argument_sets() -> Vec<Cli> {
         .collect::<Vec<Cli>>()
 }
 
-#[doc(hidden)]
 fn to_cli_struct(arguments: Vec<String>) -> Result<Cli> {
     let mut matches = cli_init().get_matches_from(arguments);
 
@@ -223,16 +224,15 @@ fn to_cli_struct(arguments: Vec<String>) -> Result<Cli> {
     }
 
     Ok(Cli {
-        meshtal: meshtal.unwrap(),
+        meshtal: meshtal.unwrap(), // fine to unwrap if a default has been set
         number: number.unwrap(),
-        power: matches.remove_one("power").unwrap(), // fine to unwrap if a default has been set
-        error: matches.remove_one("error").unwrap(),
+        power: powers_vector(&mut matches),
+        error: errors_vector(&mut matches),
         total: matches.remove_one("total").unwrap(),
         scale: matches.remove_one("scale").unwrap(),
     })
 }
 
-#[doc(hidden)]
 fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     let path: &Path = Path::new(&cli.meshtal);
 
@@ -246,7 +246,6 @@ fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     Ok(std::mem::take(&mut mesh[0]))
 }
 
-#[doc(hidden)]
 fn output_args() -> Option<String> {
     let args_iter = env::args();
     let args_iter2 = env::args().skip(1);
@@ -260,7 +259,6 @@ fn output_args() -> Option<String> {
     })
 }
 
-#[doc(hidden)]
 fn help_flags() -> bool {
     let help = env::args()
         .filter(|p| (p.as_str() == "-h" || p.as_str() == "--help"))
@@ -281,19 +279,16 @@ fn help_flags() -> bool {
     }
 }
 
-#[doc(hidden)]
 fn is_quiet() -> bool {
     // see if the quiet flags are anywhere
     env::args().any(|a| a.as_str() == "--quiet" || a.as_str() == "-q")
 }
 
-#[doc(hidden)]
 fn is_padded() -> bool {
     // if the user sets --trim, remove the padding
     !env::args().any(|a| a.as_str() == "--trim")
 }
 
-#[doc(hidden)]
 fn collect_verbosity() -> usize {
     env::args()
         .filter(|p| (p.starts_with("-v") || p.as_str() == "--verbose"))
@@ -303,7 +298,6 @@ fn collect_verbosity() -> usize {
         })
 }
 
-#[doc(hidden)]
 fn split_argument_sets() -> Vec<ArgSet> {
     let name = env::args().next().unwrap();
     let raw_args = env::args().skip(1).collect::<Vec<String>>();
@@ -322,7 +316,7 @@ fn split_argument_sets() -> Vec<ArgSet> {
 }
 
 /// Creates tonybox banner
-#[doc(hidden)]
+
 fn banner() -> String {
     let mut s = f!("{:-<1$}\n", "", 70);
     s += &f!("{:^70}\n", "Meshtal :: MeshToWW");
@@ -331,7 +325,7 @@ fn banner() -> String {
 }
 
 // initialise logging for all relevant modules with variable verbosity
-#[doc(hidden)]
+
 fn logging_init() {
     stderrlog::new()
         .modules(vec![
@@ -349,7 +343,6 @@ fn logging_init() {
         .unwrap();
 }
 
-#[doc(hidden)]
 fn cli_init() -> Command {
     Command::new("mesh2ww")
         .about("Conversion of meshtal file meshes to MCNP weight windows")
@@ -367,13 +360,12 @@ fn cli_init() -> Command {
         .args(debug_args())
 }
 
-#[doc(hidden)]
 fn cli_long_help() -> &'static str {
     "Conversion of meshtal file meshes to MCNP weight windows
+    
+For multiple particle types, use the '+' operator to combine multiple tallies that have the same dimensions.
 
 The MAGIC method is used to convert tallies to mesh-based global weight windows. Weights are calculated as (0.5 * (flux / reference_flux)).powf(power), with any voxels with errors larger than --error set to analogue. The reference flux is the maximum seen within each energy/time group voxel set.
-
-For multiple particle types, use the '+' operator to combine multiple tallies that have the same dimensions.
 
 Supports all mesh output formats for rectangular and cylindrical geometries. 
 
@@ -410,27 +402,22 @@ Notes
 CuV voidoff=yes will not output results for void cells which will therefore always be analogue. CuV also has a habit of including -ve results, which are unphysical and considered to be 0.0 in this implementation."
 }
 
-#[doc(hidden)]
 fn after_help_message() -> &'static str {
-    "Typical use: mesh2ww run0.msht 104 -p 0.70 -e 0.1 -o wwout\n\nSee --help for detail and examples"
+    "Typical use: mesh2ww run0.msht 104 -p 0.70 -o wwinp\n\nSee --help for detail and examples"
 }
 
-#[doc(hidden)]
 fn usage_message() -> &'static str {
     "mesh2ww <meshtal> <number> [options] [+]"
 }
 
-#[doc(hidden)]
 fn positional_args() -> [Arg; 2] {
     [arg_meshtal(), arg_number()]
 }
 
-#[doc(hidden)]
 fn debug_args() -> [Arg; 3] {
     [arg_verbosity(), arg_quiet(), arg_help()]
 }
 
-#[doc(hidden)]
 fn optional_args() -> [Arg; 6] {
     [
         arg_power(),
@@ -442,7 +429,6 @@ fn optional_args() -> [Arg; 6] {
     ]
 }
 
-#[doc(hidden)]
 fn arg_meshtal() -> Arg {
     Arg::new("meshtal")
         .help_heading("Arguments")
@@ -451,7 +437,6 @@ fn arg_meshtal() -> Arg {
         .value_parser(value_parser!(String))
 }
 
-#[doc(hidden)]
 fn arg_number() -> Arg {
     Arg::new("number")
         .help_heading("Arguments")
@@ -461,7 +446,6 @@ fn arg_number() -> Arg {
         .action(ArgAction::Set)
 }
 
-#[doc(hidden)]
 fn arg_verbosity() -> Arg {
     Arg::new("verbose")
         .short('v')
@@ -475,7 +459,6 @@ fn arg_verbosity() -> Arg {
         .action(ArgAction::Count)
 }
 
-#[doc(hidden)]
 fn arg_quiet() -> Arg {
     Arg::new("quiet")
         .short('q')
@@ -486,7 +469,6 @@ fn arg_quiet() -> Arg {
         .action(ArgAction::SetTrue)
 }
 
-#[doc(hidden)]
 fn arg_help() -> Arg {
     Arg::new("help")
         .long("help")
@@ -496,7 +478,6 @@ fn arg_help() -> Arg {
         .action(ArgAction::HelpShort)
 }
 
-#[doc(hidden)]
 fn arg_output() -> Arg {
     Arg::new("output")
         .short('o')
@@ -514,7 +495,6 @@ fn arg_output() -> Arg {
         .hide_default_value(true)
 }
 
-#[doc(hidden)]
 fn arg_power() -> Arg {
     Arg::new("power")
             .short('p')
@@ -526,13 +506,21 @@ fn arg_power() -> Arg {
             )
             .required(false)
             .action(ArgAction::Set)
+            .value_delimiter(' ')
+            .num_args(1..)
             .value_parser(value_parser!(f64))
             .default_value("0.7")
-            .value_name("value")
+            .value_name("values")
             .hide_default_value(true)
 }
 
-#[doc(hidden)]
+fn powers_vector(matches: &mut ArgMatches) -> Vec<f64> {
+    matches
+        .remove_many::<f64>("power")
+        .unwrap_or_default()
+        .collect()
+}
+
 fn arg_error() -> Arg {
     Arg::new("error")
             .short('e')
@@ -540,17 +528,25 @@ fn arg_error() -> Arg {
             .help_heading("Weight options")
             .help("Maximum rel. error, use analogue above")
             .long_help(
-                "Maximum rel. error, use analogue above\n\nDefault 0.1 (10%). Relative errors above the provided value are set to zero, and will continue to use analogue transport until better statistics are available.",
+                "Maximum rel. error, use analogue above\n\nDefault 1.0 (100%). Relative errors above the provided value are set to zero, and will continue to use analogue transport until better statistics are available.",
             )
             .required(false)
             .action(ArgAction::Set)
+            .value_delimiter(' ')
+            .num_args(1..)
             .value_parser(value_parser!(f64))
-            .default_value("0.1")
+            .default_value("1.0")
             .value_name("value")
             .hide_default_value(true)
 }
 
-#[doc(hidden)]
+fn errors_vector(matches: &mut ArgMatches) -> Vec<f64> {
+    matches
+        .remove_many::<f64>("error")
+        .unwrap_or_default()
+        .collect()
+}
+
 fn arg_total() -> Arg {
     Arg::new("total")
             .short('t')
@@ -564,7 +560,6 @@ fn arg_total() -> Arg {
             .action(ArgAction::SetTrue)
 }
 
-#[doc(hidden)]
 fn arg_scale() -> Arg {
     Arg::new("scale")
             .short('s')
@@ -582,7 +577,6 @@ fn arg_scale() -> Arg {
             .hide_default_value(true)
 }
 
-#[doc(hidden)]
 fn arg_padding() -> Arg {
     Arg::new("trim")
         .long("trim")
