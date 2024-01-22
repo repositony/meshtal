@@ -105,6 +105,7 @@ use anyhow::{anyhow, Result};
 use clap::{value_parser, Arg, ArgAction, ArgMatches, Command};
 use log::*;
 
+// Convenience items
 type ArgSet = Vec<String>;
 
 fn main() -> Result<()> {
@@ -120,14 +121,9 @@ fn main() -> Result<()> {
     // through Clap to verify the arguments
     let arg_sets = process_argument_sets();
 
-    for c in arg_sets {
-        println!("power = {:?}", c.power);
-        println!("error = {:?}", c.error);
-    }
-
     // collect up all weight windows, just exclude any missing and warn the user
-    // info!("Getting weights");
-    // let particle_weights = collect_weight_windows(arg_sets)?;
+    info!("Getting weights");
+    let particle_weights = collect_weight_windows(arg_sets)?;
 
     // // Write the weight window file
     // let output = output_args().unwrap_or("wwinp".to_string());
@@ -158,40 +154,54 @@ struct Cli {
     scale: f64,
 }
 
-//
-// fn collect_weight_windows(arg_sets: Vec<Cli>) -> Result<Vec<WeightWindow>> {
-//     let mut particle_weights: Vec<WeightWindow> = Vec::with_capacity(arg_sets.len());
-//     for cli in &arg_sets {
-//         // read mesh data from the meshtal file
-//         info!("Reading {}", &cli.meshtal);
-//         let mesh = try_meshtal_read(cli)?;
+fn collect_weight_windows(arg_sets: Vec<Cli>) -> Result<Vec<WeightWindow>> {
+    let mut particle_weights: Vec<WeightWindow> = Vec::with_capacity(arg_sets.len());
+    for cli in &arg_sets {
+        // read mesh data from the meshtal file
+        info!("Reading {}", &cli.meshtal);
+        let mesh = try_meshtal_read(cli)?;
 
-//         // todo: ok so annoyingly the particle checking has to be done here
-//         // todo: getting more and more worth having a preprocessing step
-//         // todo: probably needs a new reader or short circuit in existing
-//         if particle_weights
-//             .iter()
-//             .any(|ww| ww.particle == mesh.particle)
-//         {
-//             info!("{:?} type already included, skipping...", mesh.particle);
-//             continue;
-//         }
+        // todo: ok so annoyingly the particle checking has to be done here
+        // todo: getting more and more worth having a preprocessing step
+        // todo: probably needs a new reader or short circuit in existing
+        if particle_weights
+            .iter()
+            .any(|ww| ww.particle == mesh.particle)
+        {
+            info!("{:?} type already included, skipping...", mesh.particle);
+            continue;
+        }
 
-//         // convert mesh into WWMesh object for writing/further manipulation
-//         info!("Generating voxel weights");
-//         let mut ww = weights::mesh_to_ww(&mesh, cli.power, cli.error, cli.total);
+        // convert mesh into WWMesh object for writing/further manipulation
+        info!("Generating voxel weights");
+        let mut ww = generate_weight_window(&mesh, cli);
 
-//         // Multiply weights by a constant factor if one is provided
-//         if cli.scale != 1.0 {
-//             info!("Scaling results by {}", cli.scale);
-//             ww.scale(cli.scale);
-//         }
+        // Multiply weights by a constant factor if one is provided
+        if cli.scale != 1.0 {
+            info!("Scaling results by {}", cli.scale);
+            ww.scale(cli.scale);
+        }
 
-//         particle_weights.push(ww);
-//     }
+        particle_weights.push(ww);
+    }
 
-//     Ok(particle_weights)
-// }
+    Ok(particle_weights)
+}
+
+fn generate_weight_window(mesh: &Mesh, cli: &Cli) -> WeightWindow {
+    if cli.power.len() > 1 || cli.error.len() > 1 {
+        if cli.total {
+            warn!("Warning: Conflicting options");
+            warn!(" - Multiple --power/--error values used with --total");
+            warn!(" - Falling back to default values");
+            weights::mesh_to_ww(mesh, 0.7, 1.0, cli.total)
+        } else {
+            weights::mesh_to_ww_advanced(mesh, &cli.power, &cli.error)
+        }
+    } else {
+        weights::mesh_to_ww(mesh, cli.power[0], cli.error[0], cli.total)
+    }
+}
 
 fn process_argument_sets() -> Vec<Cli> {
     split_argument_sets()
@@ -535,7 +545,7 @@ fn arg_error() -> Arg {
             .value_delimiter(' ')
             .num_args(1..)
             .value_parser(value_parser!(f64))
-            .default_value("1.0")
+            .default_value("1.0") // horrible I know
             .value_name("value")
             .hide_default_value(true)
 }
