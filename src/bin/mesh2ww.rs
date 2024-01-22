@@ -19,7 +19,7 @@
 //! ### Tuning weights
 //!
 //! Typical usage will generally define a de-tuning factor (`-p`/`--power`) and
-//! the relative error cutoff (`-e`/`--error`) for generating weights.  
+//! possibly a relative error cutoff (`-e`/`--error`) for generating weights.  
 //!
 //! ```bash
 //! mesh2ww run0.msht 104 --power 0.70 --error 0.1
@@ -59,6 +59,42 @@
 //! ```bash
 //! # Multiply all normalised weights by x2.5
 //! mesh2ww run0.msht 104 --scale 2.5
+//! ```
+//!
+//! ### Advanced de-tuning
+//!
+//! For fine control, the `--power` and `--error` parameters may be set
+//! explicitly for every unique group.
+//!
+//! For example, if a mesh had 3 energy groups at 1.0 MeV, 10.0 MeV, and
+//! 100.0 MeV, the power factor for each may be set to 0.8, 0.7, and 0.65
+//! respectively.
+//!
+//! ```bash
+//! # Set energy group power factors individually
+//! mesh2ww run0.msht 104 --power 0.8 0.7 0.65
+//! ```
+//!
+//! Of course this applies to time bins also. To set values for all unique
+//! groups, the values must be given in order.
+//!
+//! Foe example, a mesh with 3x energy groups and 2x time groups:
+//!
+//! ```text
+//! Energy 1.0        Power     
+//!     Time 1e10      0.9     
+//!     Time 1e20      0.7
+//! Energy 10.0     
+//!     Time 1e10      0.8     
+//!     Time 1e20      0.8
+//! Energy 100.0        
+//!     Time 1e10      0.6     
+//!     Time 1e20      0.5
+//! ```
+//!
+//! ```bash
+//! # Set energy group power factors individually
+//! mesh2ww run0.msht 104 --power 0.9 0.7 0.8 0.8 0.6 0.5
 //! ```
 //!
 //! ### Multi-particle weight windows
@@ -377,6 +413,8 @@ For multiple particle types, use the '+' operator to combine multiple tallies th
 
 The MAGIC method is used to convert tallies to mesh-based global weight windows. Weights are calculated as (0.5 * (flux / reference_flux)).powf(power), with any voxels with errors larger than --error set to analogue. The reference flux is the maximum seen within each energy/time group voxel set.
 
+For advanced users, the --power and --error de-tuning factors may be set for individual energy/time groups. All groups must be explicitly provided.
+
 Supports all mesh output formats for rectangular and cylindrical geometries. 
 
 Typical examples 
@@ -406,6 +444,23 @@ Mutli-particle examples
                 + fileB 24 -p 0.5 -e 0.15       \\
                 + fileC 14 --total 
 
+Advanced de-tuning
+------------------
+    
+    Set power factors individually for a 3x erg group mesh
+        $ mesh2ww run0.msht 104 --power 0.8 0.7 0.65
+
+    Set both factors individually for a 3x erg group mesh
+        $ mesh2ww run0.msht 104         \\
+                  --power 0.8 0.7 0.65  \\
+                  --error 1.0 0.9 1.0
+
+    Set factors individually for 3x erg group, 2x time groups
+        $ mesh2ww run0.msht 104    \\
+                  --power 0.8 0.7  \\   => (e0,t0) (e0,t1)
+                          0.9 0.8  \\   => (e1,t0) (e1,t1)
+                          0.7 0.6  \\   => (e2,t0) (e2,t1)
+                  
 Notes
 -----
 
