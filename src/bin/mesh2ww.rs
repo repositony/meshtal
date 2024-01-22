@@ -78,7 +78,7 @@
 //! Of course this applies to time bins also. To set values for all unique
 //! groups, the values must be given in order.
 //!
-//! Foe example, a mesh with 3x energy groups and 2x time groups:
+//! For example, a mesh with 3x energy groups and 2x time groups:
 //!
 //! ```text
 //! Energy 1.0        Power     
@@ -161,22 +161,22 @@ fn main() -> Result<()> {
     info!("Getting weights");
     let particle_weights = collect_weight_windows(arg_sets)?;
 
-    // // Write the weight window file
-    // let output = output_args().unwrap_or("wwinp".to_string());
-    // debug!("Output = \"{output}\"");
+    // Write the weight window file
+    let output = output_args().unwrap_or("wwinp".to_string());
+    debug!("Output = \"{output}\"");
 
-    // info!("Writing to {output}");
-    // weights::write_multi_particle(&particle_weights, &output, is_padded());
+    info!("Writing to {output}");
+    weights::write_multi_particle(&particle_weights, &output, is_padded());
 
-    // for ww in particle_weights {
-    //     info!(
-    //         "Weighted voxels {:.2}% ({:?})",
-    //         ww.non_analogue_percentage(),
-    //         ww.particle
-    //     );
-    // }
+    for ww in particle_weights {
+        info!(
+            "Weighted voxels {:.2}% ({:?})",
+            ww.non_analogue_percentage(),
+            ww.particle
+        );
+    }
 
-    // info!("Conversion complete");
+    info!("Conversion complete");
     Ok(())
 }
 

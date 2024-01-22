@@ -284,6 +284,42 @@ These may be rescaled by a constant multiplier.
 mesh2ww run0.msht 104 --scale 2.5
 ```
 
+#### Advanced de-tuning
+
+For fine control, the `--power` and `--error` parameters may be set
+explicitly for every unique group.
+
+For example, if a mesh had 3 energy groups at 1.0 MeV, 10.0 MeV, and
+100.0 MeV, the power factor for each may be set to 0.8, 0.7, and 0.65
+respectively.
+
+```bash
+# Set energy group power factors individually
+mesh2ww run0.msht 104 --power 0.8 0.7 0.65
+```
+
+Of course this applies to time bins also. To set values for all unique
+groups, the values must be given in order.
+
+For example, a mesh with 3x energy groups and 2x time groups:
+
+```text
+Energy 1.0        Power
+    Time 1e10      0.9
+    Time 1e20      0.7
+Energy 10.0
+    Time 1e10      0.8
+    Time 1e20      0.8
+Energy 100.0
+    Time 1e10      0.6
+    Time 1e20      0.5
+```
+
+```bash
+# Set energy group power factors individually
+mesh2ww run0.msht 104 --power 0.9 0.7 0.8 0.8 0.6 0.5
+```
+
 #### Multi-particle weight windows
 
 Multiple tallies may be combined for weight windows covering multiple
@@ -590,16 +626,11 @@ posvol plot_fmesh_104.bin       \
 
 **An API with full cargo documentation is available with details for using the crate**
 
-Genuinely assumed the number of people who care about such a niche application
-implemented in Rust was a big fat zero. The command line interface is a set of
-QoL tools written for colleagues.
+The command line interface is a set of QoL tools written for colleagues. The
+crate is far more useful than the CLI since the challenge with meshtal files is
+always just trying to parse the horrible old MCNP outputs.
 
-This is part of my personal analysis framework so the crate is well
-[documented](https://repositony.github.io/meshtal/index.html). The library
-is actually far more useful than the CLI since the challenge with meshtal files
-is always in trying to parse the horrible old MCNP outputs.
-
-This crate allows any format to be read into a struct with a one-liner, and
+The crate allows any format to be read into a struct with a one-liner, and
 from there you can do whatever you want with the mesh data. All mesh formats
 are coerced into the same core `Mesh` structure.
 
@@ -610,30 +641,8 @@ let mesh = meshtal::read_meshtal_target("./data/example_114.msht", 114).unwrap()
 // now do whatever you want with it
 ```
 
-As an overview:
-
-- The `mesh` module contains all of the relevant structures and
-functionality needed for most things.
-- The `weights` module provides ways of generating and manipulating global
-mesh-based weight windows.
-- The `vtk` module allows for writing several of the data structures to VTK
-formats for plotting.
-- The `point` module provides ways of extracting specific data of interest
-from various locations in a mesh.
-- The `posvol` module deserialises UKAEA CuV posvol files and is very useful
-data to have available
-
-In the background, the `nom` parser combinator library allows for some
-extremely fast parsing, `clap` is used for command line interface, and
-`vtkio` allows conversions to various plot formats.
-
-The memory usage is minimised as much as possible so that extremely large
-meshes can be handled without using obscene amounts of RAM. MCNP uses the
-equavalent of f64 internally, so a large `Mesh` will be
-~24 bytes per voxel as a rough guide.
-
-All of the useful functionality from the file readers and core data
-structures are re-expoerted for convenience.
+The hull library documentation is published
+[here](https://repositony.github.io/meshtal/index.html) for convenience.
 
 ## Features under development
 
