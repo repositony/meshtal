@@ -299,9 +299,8 @@ mesh2ww run0.msht 104 --power 0.8 0.7 0.65
 ```
 
 Of course this applies to time bins also. To set values for all unique
-groups, the values must be given in order.
-
-For example, a mesh with 3x energy groups and 2x time groups:
+groups, the values must be given in order. For example, a mesh with 3x 
+energy groups and 2x time groups:
 
 ```text
 Energy 1.0        Power
@@ -641,7 +640,7 @@ let mesh = meshtal::read_meshtal_target("./data/example_114.msht", 114).unwrap()
 // now do whatever you want with it
 ```
 
-The hull library documentation is published
+The full library documentation is published
 [here](https://repositony.github.io/meshtal/index.html) for convenience.
 
 ## Features under development
