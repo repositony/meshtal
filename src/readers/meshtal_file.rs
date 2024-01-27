@@ -1020,14 +1020,7 @@ impl MeshtalReader {
                     trace!("Generating trailing void voxels");
                     // just add a bunch of zero result voxels on the end
                     for _ in 0..(n_target - n_actual) {
-                        // let (energy, time, i, j, k) =
-                        //     Self::approximate_coordinates(m, m.voxels.len());
                         m.voxels.push(Voxel {
-                            // energy,
-                            // time,
-                            // i,
-                            // j,
-                            // k,
                             index: m.voxels.len(),
                             result: 0.0,
                             error: 0.0,
