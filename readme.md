@@ -654,10 +654,10 @@ posvol plot_fmesh_104.bin       \
 **An API with full cargo documentation is available with details for using the crate**
 
 The command line interface is a set of QoL tools written for colleagues. The
-crate is far more useful than the CLI since the challenge with meshtal files is
-always just trying to parse the horrible old MCNP outputs.
+crate itself is far more useful since the challenge with meshtal files is
+always just trying to parse the horrible MCNP output files.
 
-The crate allows any format to be read into a struct with a one-liner, and
+This crate allows any format to be read into a struct with a one-liner, and
 from there you can do whatever you want with the mesh data. All mesh formats
 are coerced into the same core `Mesh` structure.
 
@@ -676,7 +676,6 @@ The full library documentation is published
 Priority:
 
 - HDF5 support is a priority with the release of MCNPv6.3 (behind feature flag as it depends on `libhdf5`)
-- Weight window conversion to VTK for plotting
 - Various tools for working with/converting to the new HDF5 formats
 - Python bindings to make core functionality accessible
 
