@@ -191,7 +191,7 @@ fn main() -> Result<()> {
     let particle_weights = collect_weight_windows(ww_config_sets)?;
 
     let file_config = parse_file_config();
-    println!("{:?}", file_config);
+
     // Write the weight window file
     info!("Writing to {}", file_config.output);
     weights::write_multi_particle(&particle_weights, &file_config.output, !file_config.trim);
@@ -207,7 +207,6 @@ fn main() -> Result<()> {
 fn collect_weight_windows(ww_config_sets: Vec<WWConfig>) -> Result<Vec<WeightWindow>> {
     // prepare for writing to VTK files if needed
     let vtk_config = parse_vtk_config();
-    println!("{:?}", vtk_config);
 
     // prepare the ultimate return value
     let mut weight_windows: Vec<WeightWindow> = Vec::with_capacity(ww_config_sets.len());
@@ -285,6 +284,12 @@ fn generate_weight_window(mesh: &Mesh, cli: &WWConfig) -> WeightWindow {
 }
 
 fn generate_vtk(weight_window: &WeightWindow, cli: &VtkConfig) -> Result<()> {
+    // todo: skip cylindrical meshes while vtk conversion is being implemented
+    if weight_window.nwg == Geometry::Cylindrical {
+        warn!("Warning: Cylindrical conversion to VTK not yet implemented");
+        return Ok(());
+    }
+
     // Set up the conversion
     let convertor = build_converter(cli);
     let vtk = convertor.convert(weight_window)?;
@@ -299,7 +304,7 @@ fn generate_vtk(weight_window: &WeightWindow, cli: &VtkConfig) -> Result<()> {
     // Write to disk, using the paticle type as a simple file name
     vtk::write_vtk(
         vtk,
-        f!("ww_{:?}.{extension}", weight_window.particle),
+        f!("ww_{:?}.{extension}", weight_window.particle).to_lowercase(),
         VtkFormat::Xml,
     )
 }
