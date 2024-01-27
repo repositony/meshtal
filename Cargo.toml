@@ -1,6 +1,6 @@
 [package]
 name = "meshtal"
-version = "0.12.4"
+version = "0.13.0"
 edition = "2021"
 authors = ["Tony <repositony@outlook.com>"]
 description = "A collection of useful analysis tools for interacting with MCNP meshtal files"
