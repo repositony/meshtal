@@ -299,7 +299,7 @@ mesh2ww run0.msht 104 --power 0.8 0.7 0.65
 ```
 
 Of course this applies to time bins also. To set values for all unique
-groups, the values must be given in order. For example, a mesh with 3x 
+groups, the values must be given in order. For example, a mesh with 3x
 energy groups and 2x time groups:
 
 ```text
@@ -344,6 +344,34 @@ usual optionas applied to each weight set individually:
 mesh2ww NP_tallies.msht 14                   +      \
         NP_tallies.msht 24 -p 0.8 -e 0.15    +      \
         E_tallies.msht  34 --total                  \
+```
+
+#### Writing weights to VTK
+
+A Visual Toolkit file can be generated for every weight window set using the
+`--vtk` flag.
+
+**WARNING: Cylindrical weight window plotting is a WIP**
+
+```bash
+mesh2ww file.msht 14 --vtk
+```
+
+Of course all the usual options are available, such as increasing the
+resolution of cylindrical meshes with few theta bins.
+
+```bash
+mesh2ww file.msht 14 --vtk --resolution 2
+```
+
+Advanced options include changing the file format, byte ordering of binary
+outputs, and which compressor to use for XML.
+
+```bash
+mesh2ww file.msht 14 --vtk          \\
+            --format legacy-ascii   \\
+            --compressor lzma       \\
+            --endian big-endian  
 ```
 
 </details>
