@@ -124,6 +124,32 @@
 //!         E_tallies.msht  34 --total                  \\
 //! ```
 //!
+//! ### Writing weights to VTK
+//!
+//! A Visual Toolkit file can be generated for every weight window set using the
+//! `--vtk` flag.
+//!
+//! ```bash
+//! mesh2ww file.msht 14 --vtk
+//! ```
+//!
+//! Of course, all the usual options are available, such as increasing the
+//! resolution of cylindrical meshes with few theta bins.
+//!
+//! ```bash
+//! mesh2ww file.msht 14 --vtk --resolution 2
+//! ```
+//!
+//! Advanced options include changing the file format, byte ordering of binary
+//! outputs, and which compressor to use for XML.
+//!
+//! ```bash
+//! mesh2ww file.msht 14 --vtk          \\
+//!             --format legacy-ascii   \\
+//!             --compressor lzma       \\
+//!             --endian big-endian  
+//! ```
+//!
 #![doc(hidden)]
 
 // standard library
