@@ -81,6 +81,7 @@ use std::path::Path;
 // internal modules
 use crate::mesh::{Geometry, Group, Mesh};
 use crate::utils::*;
+use crate::weights::WeightWindow;
 
 // extrenal crates
 use anyhow::{anyhow, Ok, Result};
@@ -154,6 +155,60 @@ pub fn mesh_to_vtk(mesh: &Mesh) -> Result<Vtk> {
 pub fn weights_to_vtk() -> Result<Vtk> {
     todo!()
 }
+
+// !    ----------------------
+// !    Convenience structures
+// !    ----------------------
+
+/// Vertex for use in cylindrical and unstructured mesh types
+struct Vertex {
+    x: f64,
+    y: f64,
+    z: f64,
+}
+
+impl Vertex {
+    /// turn vertex into a vector, rounding to 5 decimal places for consistency
+    fn as_array(&self) -> [f64; 3] {
+        [Self::rnd(self.x), Self::rnd(self.y), Self::rnd(self.z)]
+    }
+
+    /// Pass aling simple translations by (x,y,z) cartesian coordinates
+    fn translate(mut self, origin: &[f64; 3]) -> Vertex {
+        self.x += origin[0];
+        self.y += origin[1];
+        self.z += origin[2];
+        self
+    }
+
+    /// Force rounding of f64 to 5 decimal places
+    ///
+    /// Makes absolutely sure the vertex points are not slightly off due to f64
+    /// rounding errors. The points in meshtal files are are only to 5 decimal
+    /// places anyway so this should not lose precision.
+    fn rnd(value: f64) -> f64 {
+        let factor: f64 = (10_f64).powf(5.0);
+        (factor * value).round() / factor
+    }
+}
+
+/// Enum of VTK output formats
+///
+/// [VtkFormat::Xml] is recommended as the most modern format that also supports
+/// compression to reduce file sizes.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum VtkFormat {
+    /// Extensible Markup Language (xml)
+    Xml,
+    /// ASCII text file
+    LegacyAscii,
+    /// ASCII headers with binary data
+    LegacyBinary,
+}
+
+// !    -----------------
+// !    Mesh tally to VTK
+// !    -----------------
 
 /// Convert mesh tallies to vtk formats for plotting
 ///
@@ -321,7 +376,7 @@ pub struct MeshToVtk {
     pub include_errors: bool,
     /// Byte ordering as big or little endian
     pub byte_order: ByteOrder,
-    /// Comression method for xml file formats
+    /// compression method for xml file formats
     pub compressor: Compressor,
     /// Cylindrical mesh resolution
     pub resolution: u8,
@@ -838,7 +893,7 @@ pub struct MeshToVtkBuilder {
     include_errors: bool,
     /// Byte ordering as big or little endian
     byte_order: ByteOrder,
-    /// Comression method for xml file formats
+    /// compression method for xml file formats
     compressor: Compressor,
     /// Cylindrical mesh resolution
     resolution: u8,
@@ -925,7 +980,7 @@ impl MeshToVtkBuilder {
         self
     }
 
-    /// Set the comression method for xml file formats
+    /// Set the compression method for xml file formats
     ///
     /// Generally just use LZMA but other options are available:
     /// - lzma (default)
@@ -952,70 +1007,203 @@ impl Default for MeshToVtkBuilder {
     }
 }
 
+// !    --------------------
+// !    Weight window to VTK
+// !    --------------------
+
 /// Convert weight window sets to vtk formats for plotting
 #[derive(Debug, PartialEq)]
-pub struct WeightsToVtk;
+pub struct WeightsToVtk {
+    /// Byte ordering as big or little endian
+    pub byte_order: ByteOrder,
+    /// compression method for xml file formats
+    pub compressor: Compressor,
+    /// Cylindrical mesh resolution
+    pub resolution: u8,
+}
 
+// Public API
 impl WeightsToVtk {
     /// Start with the default configuration
     pub fn new() -> WeightsToVtk {
         Default::default()
     }
+
+    /// Get an instance of the [WeightsToVtkBuilder]
+    pub fn builder() -> WeightsToVtkBuilder {
+        WeightsToVtkBuilder::default()
+    }
+
+    /// Convert a [WeightWindow] to Vtk object
+    ///
+    /// Once the configuration is set through either the builder or changing the
+    /// fields directly, convert any [WeightWindow] into a Vtk ready for writing
+    /// or futher processing.
+    pub fn convert(&self, weight_window: &WeightWindow) -> Result<Vtk> {
+        match weight_window.nwg {
+            Geometry::Rectangular => self.rectangular_vtk(weight_window),
+            Geometry::Cylindrical => todo!(),
+        }
+    }
 }
 
 impl Default for WeightsToVtk {
     fn default() -> Self {
-        todo!()
+        WeightsToVtkBuilder::default().build()
+    }
+}
+
+/// Implementations for proecessing Rectangular mesh types
+impl WeightsToVtk {
+    /// Convert WeightWindow data to vtkio types for writing
+    fn rectangular_vtk(&self, weight_window: &WeightWindow) -> Result<Vtk> {
+        debug!("Generating RectilinearGrid from weights");
+        Ok(Vtk {
+            version: Version::Auto,
+            title: f!("{:?} weight window sets", weight_window.particle),
+            byte_order: self.byte_order,
+            file_path: None,
+            data: DataSet::inline(RectilinearGridPiece {
+                extent: Self::extent(weight_window),
+                coords: Self::coordinates(weight_window),
+                data: self.collect_attributes(weight_window),
+            }),
+        })
+    }
+
+    /// Defines number of mesh voxels in each extent for the rectilinear grid
+    fn extent(ww: &WeightWindow) -> Extent {
+        let range_ext: RangeExtent = [
+            RangeInclusive::new(0, ww.nfx as i32),
+            RangeInclusive::new(0, ww.nfy as i32),
+            RangeInclusive::new(0, ww.nfz as i32),
+        ];
+        Extent::Ranges(range_ext)
+    }
+
+    /// Defines coordiantes for rectilinear grid from mesh bounds
+    fn coordinates(ww: &WeightWindow) -> Coordinates {
+        Coordinates {
+            x: IOBuffer::F64(
+                std::iter::once(ww.x0)
+                    .chain(ww.qps_x.iter().map(|x| x[1]))
+                    .collect(),
+            ),
+            y: IOBuffer::F64(
+                std::iter::once(ww.y0)
+                    .chain(ww.qps_y.iter().map(|y| y[1]))
+                    .collect(),
+            ),
+            z: IOBuffer::F64(
+                std::iter::once(ww.z0)
+                    .chain(ww.qps_z.iter().map(|z| z[1]))
+                    .collect(),
+            ),
+        }
+    }
+
+    /// Collect rectilinear cell results into appropriate order/format
+    fn collect_attributes(&self, ww: &WeightWindow) -> Attributes {
+        trace!("Collecting attributes");
+        let mut attributes: Attributes = Attributes::new();
+
+        // already ordered correctly so can just iterate over each set
+        let weight_sets = ww.weights.chunks(ww.nfx * ww.nfy * ww.nfz);
+
+        for (i, group) in weight_sets.enumerate() {
+            let cell_data = DataArray {
+                // todo: do something more clever here later
+                name: f!("group_{i}"),
+                elem: ElementType::Scalars {
+                    num_comp: 1,
+                    lookup_table: None,
+                },
+                data: IOBuffer::F64(group.to_vec()),
+            };
+            attributes.cell.push(Attribute::DataArray(cell_data));
+        }
+
+        attributes
     }
 }
 
 /// Builder implementation for WeightsToVtk configuration
-///
-/// Not yet implemented
-pub struct WeightsToVtkBuilder;
-
-/// Enum of VTK output formats
-///
-/// [VtkFormat::Xml] is recommended as the most modern format that also supports
-/// compression to reduce file sizes.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
-pub enum VtkFormat {
-    /// Extensible Markup Language (xml)
-    Xml,
-    /// ASCII text file
-    LegacyAscii,
-    /// ASCII headers with binary data
-    LegacyBinary,
+pub struct WeightsToVtkBuilder {
+    /// Byte ordering as big or little endian
+    byte_order: ByteOrder,
+    /// compression method for xml file formats
+    compressor: Compressor,
+    /// Cylindrical mesh resolution
+    resolution: u8,
 }
 
-/// Vertex for use in cylindrical and unstructured mesh types
-struct Vertex {
-    x: f64,
-    y: f64,
-    z: f64,
-}
-
-impl Vertex {
-    /// turn vertex into a vector, rounding to 5 decimal places for consistency
-    fn as_array(&self) -> [f64; 3] {
-        [Self::rnd(self.x), Self::rnd(self.y), Self::rnd(self.z)]
+impl WeightsToVtkBuilder {
+    /// Create a new instance of the builder with default parameters
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    /// Pass aling simple translations by (x,y,z) cartesian coordinates
-    fn translate(mut self, origin: &[f64; 3]) -> Vertex {
-        self.x += origin[0];
-        self.y += origin[1];
-        self.z += origin[2];
+    /// Build the [WeightsToVtk] type
+    pub fn build(self) -> WeightsToVtk {
+        WeightsToVtk {
+            byte_order: self.byte_order,
+            compressor: self.compressor,
+            resolution: self.resolution,
+        }
+    }
+
+    /// Cylindrical mesh resolution
+    ///
+    /// Warning: Every vertex is defined explicitly, so large values will
+    /// significantly increase memory usage and file size.
+    ///
+    /// Integer value for increasing angular resolution of cylindrical meshes.
+    /// Cylinders are approximated to straight edge segments so it can be useful
+    /// to round this off by splitting voxels into multiple smaller segments.
+    ///
+    /// e.g. 4 theta bins gives 4 edges and therefore looks square. Using
+    /// `--resolution 3` generates 12 edges instead and looks more rounded in
+    /// plots.
+    pub fn resolution(mut self, resolution: u8) -> Self {
+        debug!("Set cylinder resolution to {resolution}");
+        warn!(
+            "Note that increasing cylindrical mesh resolution increases memory usage significantly"
+        );
+        self.resolution = resolution;
         self
     }
 
-    /// Force rounding of f64 to 5 decimal places
+    /// Set the byte ordering
     ///
-    /// Makes absolutely sure the vertex points are not slightly off due to f64
-    /// rounding errors. The points in meshtal files are are only to 5 decimal
-    /// places anyway so this should not lose precision.
-    fn rnd(value: f64) -> f64 {
-        let factor: f64 = (10_f64).powf(5.0);
-        (factor * value).round() / factor
+    /// Note that Visit being Visit only reads big endian, even though most
+    /// systems are little endian. The byte order has one variant of the
+    /// ByteOrder, defaulting to big endian for convenience.
+    pub fn byte_order(mut self, order: ByteOrder) -> Self {
+        debug!("Set byte order to {:?}", order);
+        self.byte_order = order;
+        self
+    }
+
+    /// Set the compression method for xml file formats
+    ///
+    /// Generally just use LZMA but other options are available:
+    /// - lzma (default)
+    /// - lz4
+    /// - zlib
+    /// - none
+    pub fn compressor(mut self, xml_compressor: Compressor) -> Self {
+        debug!("Set xml compressor type to {:?}", xml_compressor);
+        self.compressor = xml_compressor;
+        self
+    }
+}
+
+impl Default for WeightsToVtkBuilder {
+    fn default() -> Self {
+        Self {
+            byte_order: ByteOrder::BigEndian,
+            compressor: Compressor::LZMA,
+            resolution: 1,
+        }
     }
 }
