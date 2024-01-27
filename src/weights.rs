@@ -901,10 +901,10 @@ fn relevant_groups(mesh: &Mesh, total_only: bool) -> (Vec<Group>, Vec<Group>) {
 /// Fix ridiculous values that may happen for CuV
 fn constrain_weights(weight: f64) -> f64 {
     if weight < 1.0e-99 {
-        trace!("Weight {weight:.2e} < 1e-99, setting to analogue");
+        // trace!("Weight {weight:.2e} < 1e-99, setting to analogue");
         0.0
     } else if weight >= 1.0e+100 {
-        trace!("Weight {weight:.2e} >= 1e+100, setting to 9.999E+99 to preserve formatting");
+        // trace!("Weight {weight:.2e} >= 1e+100, setting to 9.999E+99 to preserve formatting");
         9.999e99
     } else {
         weight
