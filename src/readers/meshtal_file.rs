@@ -94,6 +94,9 @@ impl MeshtalReader {
         // extract all the relevant data from the file
         self.extract_meshtal_data(path, &format)?;
 
+        // quick common sense check
+        self.check_voxel_lengths()?;
+
         // add trailing voxels for void_record=off, which will not have been
         // included yet, and fix the uncertainties
         self.complete_cuv_voxels();
@@ -136,11 +139,12 @@ impl MeshtalReader {
         let cuv_hints = Self::init_cuv_hints();
         let mut progress_bar = self.init_progress_bar();
 
+        debug!("Parsing mesh data");
+
         if !self.disable_progress {
             progress_bar.refresh()?;
         };
 
-        debug!("Parsing mesh data");
         for line in reader.lines() {
             progress_bar.update(1).unwrap();
             let line = line?;
@@ -258,7 +262,6 @@ impl MeshtalReader {
             }
 
             // add new mesh to the overall list
-            debug!("Initialising new mesh for id={id}");
             self.mesh_list.push(Mesh::new(id));
 
             // Reset all tracked indices for matrix-type data
@@ -283,6 +286,21 @@ impl MeshtalReader {
                 trace!("Changed rectangular mesh origin to rear lower left");
             }
         }
+    }
+
+    /// Make sure that the number of voxels is as expected
+    fn check_voxel_lengths(&self) -> Result<()> {
+        for m in &self.mesh_list {
+            if m.voxels.len() != m.n_voxels_expected() {
+                return Err(anyhow!(
+                    "Expected {} voxels in mesh {}, found {}",
+                    m.n_voxels_expected(),
+                    m.id,
+                    m.voxels.len()
+                ));
+            }
+        }
+        Ok(())
     }
 
     /// Sort out the voxel order by consistent (e,t,i,j,k) index, as matrix can
@@ -986,9 +1004,9 @@ impl MeshtalReader {
     /// For VoidRecord::Off there may be void voxels after the last data output
     /// so this will fill those in to complete the full mesh
     fn complete_cuv_voxels(&mut self) {
-        debug!("Cleaning up CuV data");
         self.mesh_list.iter_mut().for_each(|m| {
             if m.format == Format::CUV {
+                debug!("Cleaning up CuV data");
                 // fix existing voxels
                 for v in &mut m.voxels {
                     v.error = if v.error > 0.0 { v.error.sqrt() } else { 0.0 };
