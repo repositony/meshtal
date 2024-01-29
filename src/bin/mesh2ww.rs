@@ -421,17 +421,13 @@ fn all_argument_matches() -> Vec<ArgMatches> {
         .collect()
 }
 
-// todo clean up this mess
 fn split_argument_sets() -> Vec<ArgSet> {
     let name = env::args().next().unwrap();
     let raw_args = env::args().skip(1).collect::<Vec<String>>();
-    let mut tallies = Vec::with_capacity(5);
+    let mut tallies = Vec::with_capacity(37);
 
     for s in raw_args.split(|p| p == "+") {
-        let mut v = vec![name.clone()];
-        let a = s.to_owned().clone();
-        v.extend(a);
-        tallies.push(v);
+        tallies.push(std::iter::once(name.clone()).chain(s.to_owned()).collect());
         trace!("{:?}", tallies.last());
     }
 
