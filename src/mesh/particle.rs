@@ -1,5 +1,6 @@
 // external crates
 use anyhow::{anyhow, Result};
+use serde::{Deserialize, Serialize};
 
 /// Complete collection of MCNP particle variants
 ///
@@ -81,7 +82,7 @@ use anyhow::{anyhow, Result};
 /// because it is treated as an electron. It therefore has no meshtal output
 /// tag.  
 #[repr(u8)]
-#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[derive(Debug, Default, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Deserialize, Serialize)]
 pub enum Particle {
     #[default]
     Unknown = 0,

@@ -154,10 +154,13 @@
 
 // standard library
 use std::env;
+use std::fs::File;
+use std::io::BufWriter;
+use std::iter::zip;
 use std::path::Path;
 
 // crate modules
-use meshtal::mesh::{Geometry, Mesh};
+use meshtal::mesh::{Geometry, Mesh, Particle};
 use meshtal::readers::MeshtalReader;
 use meshtal::utils::*;
 use meshtal::vtk::{self, VtkFormat, WeightsToVtk, WeightsToVtkBuilder};
@@ -165,8 +168,10 @@ use meshtal::weights::{self, WeightWindow};
 
 // external crates
 use anyhow::{anyhow, Result};
+use bincode::serialize_into;
 use clap::{value_parser, Arg, ArgAction, ArgMatches, Command, ValueEnum};
 use log::*;
+use serde::{Deserialize, Serialize};
 use vtkio::model::ByteOrder;
 use vtkio::xml::Compressor;
 
@@ -325,9 +330,38 @@ fn build_converter(cli: &VtkConfig) -> WeightsToVtk {
         .build()
 }
 
+// !    ---------------------------
+// !    Cached weights for updating
+// !    ---------------------------
+
+#[repr(C)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+struct CachedWeights {
+    particle: Particle,
+    weight_error: Vec<(f64, f64)>,
+}
+
+fn generate_binary(weight_window: &WeightWindow, mesh: &Mesh) {
+    let mut f = BufWriter::new(File::create("./test.bin").unwrap());
+
+    let weight_error = zip(&weight_window.weights, &mesh.voxels)
+        .map(|(w, v)| (*w, v.error))
+        .collect();
+
+    serialize_into(
+        &mut f,
+        &CachedWeights {
+            particle: weight_window.particle,
+            weight_error,
+        },
+    )
+    .expect("Failed to serialize cached weights to binary");
+}
+
 // !    ------------------------------
 // !    Command line argument handling
 // !    ------------------------------
+
 /// Initialises the Clap CLI command and sets up arguments
 fn cli_init() -> Command {
     Command::new("mesh2ww")
