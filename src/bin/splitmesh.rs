@@ -39,6 +39,7 @@
 //! splitmesh /path/to/meshtal.msht --output mymesh
 //! ```
 //!
+#![doc(hidden)]
 
 // standard libraries
 use std::fs::File;
@@ -58,7 +59,6 @@ use nom::character::complete::{digit1, space1};
 use nom::sequence::{preceded, tuple};
 use nom::{self, IResult};
 
-#[doc(hidden)]
 fn main() -> Result<()> {
     // set up the command line interface and match arguments
     let cli: Cli = Cli::parse();
@@ -102,7 +102,6 @@ fn main() -> Result<()> {
 ///  Change output file names to "mymesh_104.msht"
 ///     $ splitmesh run0.msht --output mymesh
 ///
-#[doc(hidden)]
 #[derive(Parser)]
 #[command(
     verbatim_doc_comment,
@@ -156,7 +155,6 @@ struct Cli {
 }
 
 /// Sets up logging at runtime to allow for multiple verbosity levels
-#[doc(hidden)]
 fn logging_init(verbosity: usize, quiet: bool) {
     stderrlog::new()
         .modules(vec![module_path!()])
@@ -170,7 +168,6 @@ fn logging_init(verbosity: usize, quiet: bool) {
 }
 
 /// Creates a banner fot the command line
-#[doc(hidden)]
 fn banner() -> String {
     let mut s = f!("{:-<1$}\n", "", 70);
     s += &f!("{:^70}\n", "Meshtal :: SplitMesh");
@@ -178,7 +175,6 @@ fn banner() -> String {
     s
 }
 
-#[doc(hidden)]
 /// Helper function for cleaning up file IO boilerplate
 fn get_reader(path: &str) -> Result<BufReader<File>> {
     let file: File = File::open(path)?;
@@ -186,7 +182,6 @@ fn get_reader(path: &str) -> Result<BufReader<File>> {
     Ok(BufReader::new(file))
 }
 
-#[doc(hidden)]
 /// Helper function for cleaning up file IO boilerplate
 fn get_writer(path: &str) -> Result<BufWriter<File>> {
     let file: File = File::create(path)?;
@@ -194,7 +189,6 @@ fn get_writer(path: &str) -> Result<BufWriter<File>> {
     Ok(BufWriter::new(file))
 }
 
-#[doc(hidden)]
 /// Make sure the file contains at least one mesh before doing anything
 fn check_for_tally(cli: &Cli) -> Result<u32> {
     let reader = get_reader(&cli.meshtal)?;
@@ -218,7 +212,6 @@ fn check_for_tally(cli: &Cli) -> Result<u32> {
     Err(anyhow!("No relevant meshes found in file"))
 }
 
-#[doc(hidden)]
 /// Copies the relevant content to appropriate files
 fn split_meshtal_files(cli: &Cli, mut writer: BufWriter<File>) -> Result<()> {
     let mut is_relevant_mesh = false;
@@ -251,13 +244,11 @@ fn split_meshtal_files(cli: &Cli, mut writer: BufWriter<File>) -> Result<()> {
     Ok(())
 }
 
-#[doc(hidden)]
 /// Quick check for the new tally tag
 fn is_new_mesh(i: &str) -> bool {
     i.starts_with("Mesh Tally Number")
 }
 
-#[doc(hidden)]
 /// Parse the number following a `Mesh Tally Number` tag to a u32
 pub fn mesh_id(i: &str) -> IResult<&str, u32> {
     let (_, tally_id) = preceded(tuple((tag("Mesh Tally Number"), space1)), digit1)(i)?;
