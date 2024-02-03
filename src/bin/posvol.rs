@@ -73,6 +73,7 @@
 //!             --output myfile
 //! ```
 //!
+#![doc(hidden)]
 
 // standard libraries
 use std::fs::File;
@@ -88,7 +89,6 @@ use anyhow::Result;
 use clap::{arg, Parser};
 use log::*;
 
-#[doc(hidden)]
 fn main() -> Result<()> {
     // set up the command line interface and match arguments
     let cli: Cli = Cli::parse();
@@ -151,7 +151,6 @@ fn main() -> Result<()> {
 /// The endian is assumed to be the same as the native type of the system
 /// this tool is run on. If needed, an option can be provided in future
 /// updates.
-#[doc(hidden)]
 #[derive(Parser)]
 #[command(
     verbatim_doc_comment,
@@ -214,7 +213,6 @@ struct Cli {
 }
 
 /// Sets up logging at runtime to allow for multiple verbosity levels
-#[doc(hidden)]
 fn logging_init(verbosity: usize, quiet: bool) {
     stderrlog::new()
         .modules(vec![module_path!()])
@@ -228,7 +226,6 @@ fn logging_init(verbosity: usize, quiet: bool) {
 }
 
 /// Creates a banner fot the command line
-#[doc(hidden)]
 fn banner() -> String {
     let mut s = f!("{:-<1$}\n", "", 70);
     s += &f!("{:^70}\n", "Meshtal :: Posvol Inspector");
@@ -236,7 +233,6 @@ fn banner() -> String {
     s
 }
 
-#[doc(hidden)]
 /// Helper function for cleaning up file IO boilerplate
 fn get_writer(path: &str) -> Result<BufWriter<File>> {
     let file: File = File::create(path)?;
@@ -244,7 +240,6 @@ fn get_writer(path: &str) -> Result<BufWriter<File>> {
     Ok(BufWriter::new(file))
 }
 
-#[doc(hidden)]
 /// Write posvol file to ascii
 fn write_pretty_ascii(posvol: &Posvol, cli: &Cli) -> Result<()> {
     let output = match &cli.output {
@@ -280,7 +275,6 @@ fn write_pretty_ascii(posvol: &Posvol, cli: &Cli) -> Result<()> {
     Ok(())
 }
 
-#[doc(hidden)]
 fn write_raw_ascii(posvol: &Posvol, cli: &Cli) -> Result<()> {
     let output = match &cli.output {
         Some(o) => f!("{o}.ascii"),
@@ -310,7 +304,6 @@ fn write_raw_ascii(posvol: &Posvol, cli: &Cli) -> Result<()> {
     Ok(())
 }
 
-#[doc(hidden)]
 /// Write posvol file to json
 fn write_json(posvol: &Posvol, cli: &Cli) -> Result<()> {
     let output = match &cli.output {
@@ -323,7 +316,6 @@ fn write_json(posvol: &Posvol, cli: &Cli) -> Result<()> {
     Ok(serde_json::to_writer_pretty(writer, posvol)?)
 }
 
-#[doc(hidden)]
 /// Write summary to the terminal
 fn print_summary(posvol: &Posvol) {
     let mut s = "Summary of binary file\n".to_string();
