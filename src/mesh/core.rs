@@ -72,13 +72,6 @@ use clap::ValueEnum;
 /// // Find the maximum of only the first three voxels
 /// assert_eq!(Mesh::maximum(&voxels[0..3]), 18.0);
 /// ```
-///
-/// It is also
-///
-///
-/// #### Indexing
-///
-/// \sdgughf
 #[derive(Debug, PartialEq)]
 pub struct Mesh {
     /// Mesh tally number e.g fmesh104 => id = 104
@@ -1121,110 +1114,6 @@ impl Mesh {
             edges.last().unwrap()
         ))
     }
-}
-
-impl Mesh {
-    /// todo this needs a better name and documenting
-    ///
-    /// We wa
-    pub fn find_all_time_idx(&self, t_idx: usize) -> Vec<&Voxel> {
-        let mut voxels = Vec::with_capacity(self.n_voxels_per_group());
-
-        // collect all voxels matching the time group index provided
-        for e_idx in 0..self.ebins() {
-            voxels.extend(
-                self.slice_voxels_by_idx(e_idx, t_idx)
-                    .unwrap()
-                    .iter()
-                    .collect::<Vec<&Voxel>>(),
-            );
-        }
-
-        voxels
-    }
-
-    // / Filter any list of Voxels by energy group
-    // /
-    // / We want to take ownsership, modify it, and then return it
-    // pub fn filter_voxels_by_energy(voxels: Vec<&Voxel>, energy_group: Group) -> Vec<&Voxel> {
-    //     voxels
-    //         .iter()
-    //         .filter(|v| v.energy == energy_group)
-    //         .copied()
-    //         .collect()
-    // }
-
-    // / Filter any list of Voxels by time group
-    // /
-    // / We want to take ownsership, modify it, and then return it
-    // pub fn filter_voxels_by_time(voxels: Vec<&Voxel>, time_group: Group) -> Vec<&Voxel> {
-    //     voxels
-    //         .iter()
-    //         .filter(|v| v.time == time_group)
-    //         .copied()
-    //         .collect()
-    // }
-
-    // / Filter any list of Voxels by both energy/time groups
-    // /
-    // / We want to take ownsership, modify it, and then return it
-    // pub fn filter_voxels(
-    //     voxels: Vec<&Voxel>,
-    //     energy_group: Group,
-    //     time_group: Group,
-    // ) -> Vec<&Voxel> {
-    //     voxels
-    //         .iter()
-    //         .filter(|v| v.energy == energy_group)
-    //         .filter(|v| v.time == time_group)
-    //         .copied()
-    //         .collect()
-    // }
-
-    // Dump all results mesh summary and all voxels
-    // pub fn dump(&self) {
-    //     let mut s = String::new();
-
-    //     if self.voxels.is_empty() {
-    //         s += "No voxel data available"
-    //     } else {
-    //         s += "idx    Energy      Time     ";
-    //         s += " i-coord    j-coord    k-coord";
-    //         s += "      Result       Error\n";
-    //         self.voxels.iter().for_each(|v| s += &f!("{v}\n"));
-    //     }
-
-    //     println!("{s}");
-    // }
-
-    // /// Write mesh summary and voxel data to a file
-    // pub fn dump_to_file(&self, path: &str) -> Result<()> {
-    //     let f = File::create(path)?;
-    //     let mut f = BufWriter::new(f);
-
-    //     f.write_all(f!("{self}").as_bytes())?;
-
-    //     let mut s = " > Dump of voxels in mesh:\n".to_string();
-    //     s += "idx    Energy      Time     ";
-    //     s += " i-coord    j-coord    k-coord";
-    //     s += "      Result       Error\n";
-    //     f.write_all(s.as_bytes())?;
-
-    //     for v in &self.voxels {
-    //         let line = &f!("{v}\n");
-    //         f.write_all(line.as_bytes())?;
-    //     }
-
-    //     Ok(())
-    // }
-
-    // /// Slice the full list of mesh Voxels by energy index
-    // pub fn slice_energy_voxels_by_idx(&self, e_idx: usize) -> Result<&[Voxel]> {
-    //     let group_size = self.tbins() * self.iints * self.jints * self.kints;
-    //     let start = e_idx * group_size;
-    //     let end = start + group_size;
-    //     Ok(&self.voxels[start..end])
-    // }
 }
 
 impl Default for Mesh {
