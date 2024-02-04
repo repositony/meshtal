@@ -932,7 +932,7 @@ impl MeshToVtkBuilder {
     /// By default all energy groups are included in the vtk. Specific energy
     /// groups can be provided to reduce file sizes.
     pub fn energy_groups(mut self, groups: Vec<usize>) -> Self {
-        debug!("Set energy groups to\n {:?}", groups);
+        debug!("Set user energy groups to\n {:?}", groups);
         self.energy_groups = groups;
         self
     }
@@ -942,7 +942,7 @@ impl MeshToVtkBuilder {
     /// By default all time groups are included in the vtk. Specific time
     /// groups can be provided to reduce file sizes.
     pub fn time_groups(mut self, groups: Vec<usize>) -> Self {
-        debug!("Set time groups to\n {:?}", groups);
+        debug!("Set user time groups to\n {:?}", groups);
         self.time_groups = groups;
         self
     }
