@@ -559,6 +559,7 @@ fn parse_targets_as_usize(targets: &[String]) -> Vec<usize> {
         .collect()
 }
 
+#[allow(clippy::redundant_closure)]
 fn parse_targets_as_group(targets: &[String]) -> Vec<Group> {
     targets
         .iter()
