@@ -123,6 +123,7 @@
 //! reads big-endian, but most sytems are natively little-endian. For personal
 //! convenience the default is big, but I am open to arguments for little endian
 //! as the default.*
+#![doc(hidden)]
 
 // standard libraries
 use std::path::Path;
@@ -140,7 +141,6 @@ use log::*;
 use vtkio::model::ByteOrder;
 use vtkio::xml::Compressor;
 
-#[doc(hidden)]
 fn main() -> Result<()> {
     // set up the command line interface and match arguments
     let cli: Cli = Cli::parse();
@@ -218,7 +218,7 @@ fn main() -> Result<()> {
 ///
 /// Meshes with a single bin for EMESH/TMESH are labelled the 'Total'
 /// group for consistency.
-#[doc(hidden)]
+
 #[derive(Parser)]
 #[command(
     verbatim_doc_comment,
@@ -378,7 +378,7 @@ struct Cli {
 }
 
 // Wrapper for byte order used by vtkio
-#[doc(hidden)]
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum CliByteOrder {
     BigEndian,
@@ -386,7 +386,7 @@ enum CliByteOrder {
 }
 
 // Wrapper for compression strategy used by vtkio
-#[doc(hidden)]
+
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum CliCompressor {
@@ -396,7 +396,6 @@ enum CliCompressor {
     None,
 }
 
-#[doc(hidden)]
 fn banner() -> String {
     let mut s = f!("{:-<1$}\n", "", 70);
     s += &f!("{:^70}\n", "Meshtal :: MeshToVtk");
@@ -404,7 +403,6 @@ fn banner() -> String {
     s
 }
 
-#[doc(hidden)]
 fn logging_init(verbosity: usize, quiet: bool) {
     stderrlog::new()
         .modules(vec![
@@ -422,7 +420,6 @@ fn logging_init(verbosity: usize, quiet: bool) {
         .unwrap();
 }
 
-#[doc(hidden)]
 fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     let path: &Path = Path::new(&cli.meshtal);
 
@@ -436,7 +433,6 @@ fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     Ok(std::mem::take(&mut mesh[0]))
 }
 
-#[doc(hidden)]
 fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
     let mut builder = MeshToVtkBuilder::new().include_errors(cli.errors);
 
@@ -472,7 +468,6 @@ fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
     builder.build()
 }
 
-#[doc(hidden)]
 #[allow(clippy::redundant_closure)]
 // Get any entries that parse into a number or 'total'
 fn parse_groups(targets: &[String]) -> Result<Vec<Group>> {
@@ -497,7 +492,6 @@ fn parse_groups(targets: &[String]) -> Result<Vec<Group>> {
     }
 }
 
-#[doc(hidden)]
 fn get_output_path(mesh: &Mesh, cli: &Cli) -> String {
     let name = cli.output.clone().unwrap_or(String::from("fmesh"));
 
