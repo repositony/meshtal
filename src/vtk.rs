@@ -415,7 +415,7 @@ impl Default for MeshToVtk {
 
 /// Common use implementations
 impl MeshToVtk {
-    /// Collect energy groups, and if none are given just use the Total
+    /// Collect energy groups, and if none are given fallback to using all groups
     fn collect_energy_group_idx(&self, mesh: &Mesh) -> Vec<usize> {
         // none defined? convert everything
         if self.energy_groups.is_empty() {
@@ -443,7 +443,7 @@ impl MeshToVtk {
         }
     }
 
-    /// Collect time groups, and if none are given just use the Total
+    /// Collect time groups, and if none are given fallback to using all groups
     fn collect_time_group_idx(&self, mesh: &Mesh) -> Vec<usize> {
         // none defined? convert everything
         if self.time_groups.is_empty() {
