@@ -972,9 +972,11 @@ impl MeshToVtkBuilder {
     /// plots.
     pub fn resolution(mut self, resolution: u8) -> Self {
         debug!("Set cylinder resolution to {resolution}");
-        warn!(
-            "Note that increasing cylindrical mesh resolution increases memory usage significantly"
-        );
+        if resolution > 1 {
+            warn!(
+                "Warning: Increasing cylindrical mesh resolution may increase memory usage significantly"
+            );
+        }
         self.resolution = resolution;
         self
     }
