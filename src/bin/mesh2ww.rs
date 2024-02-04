@@ -341,7 +341,8 @@ struct CachedWeights {
     weight_error: Vec<(f64, f64)>,
 }
 
-fn generate_binary(weight_window: &WeightWindow, mesh: &Mesh) {
+/// Generate a binary file for the cached weights
+pub fn generate_binary(weight_window: &WeightWindow, mesh: &Mesh) {
     let mut f = BufWriter::new(File::create("./test.bin").unwrap());
 
     let weight_error = zip(&weight_window.weights, &mesh.voxels)
