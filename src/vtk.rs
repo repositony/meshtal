@@ -482,9 +482,9 @@ impl MeshToVtk {
         };
 
         let time_prefix = match mesh.time_groups()[t_idx] {
-            Group::Value(t) => f!(", Time[{t_idx}] {t:.2E} MeV"),
+            Group::Value(t) => f!(", Time[{t_idx}] {t:.2E} shakes"),
             Group::Total => {
-                if self.time_groups.len() > 1 {
+                if mesh.tbins() > 1 {
                     f!(", Time[{t_idx}] Total")
                 } else {
                     "".to_string()
