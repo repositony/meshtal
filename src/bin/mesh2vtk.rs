@@ -478,9 +478,45 @@ fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
     builder.build()
 }
 
+fn get_targeted_groups(mesh: &Mesh, cli: &Cli) {
+    // simple case of --total flag seen
+    if cli.total {
+        debug!("Set all groups to 'Total' only");
+        return vec![Group::Total];
+    }
+
+    // then we want to find targeted groups by either index or value
+    match cli.absolute {
+        false => parse_index_groups(mesh, &cli.energy),
+        true => parse_absolute_groups(mesh, &cli.energy),
+    }
+}
+
+fn parse_index_groups(mesh: &Mesh, targets: &[String]) -> Result<Vec<Group>> {
+    let mut values = targets
+        .iter()
+        .filter_map(|group| group.parse::<f64>().ok())
+        .map(|v| Group::Value(v))
+        .collect::<Vec<Group>>();
+
+    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    values.dedup();
+
+    if targets.iter().any(|t| t.to_lowercase() == "total") {
+        values.push(Group::Total)
+    };
+
+    // Allow the caller to decide what to do with a failed parse of inputs
+    if values.is_empty() {
+        Err(anyhow!("Unable to parse the groups provided"))
+    } else {
+        Ok(values)
+    }
+}
+
 #[allow(clippy::redundant_closure)]
 // Get any entries that parse into a number or 'total'
-fn parse_groups(targets: &[String]) -> Result<Vec<Group>> {
+fn parse_absolute_groups(mesh: &Mesh, targets: &[String]) -> Result<Vec<Group>> {
     let mut values = targets
         .iter()
         .filter_map(|group| group.parse::<f64>().ok())
