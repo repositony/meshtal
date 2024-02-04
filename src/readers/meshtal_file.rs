@@ -108,6 +108,9 @@ impl MeshtalReader {
         // sort the list for consistency between output formats
         self.sort_voxels();
 
+        // // warn about potential precision issues
+        // self.check_precision_issues();
+
         // do not care about the reader, so give the meshes to the caller
         // this saves cloning the data which is a massive win
         Ok(std::mem::take(&mut self.mesh_list))
@@ -316,6 +319,29 @@ impl MeshtalReader {
             }
         }
     }
+
+    // fn check_precision_issues(&self) {
+    //     for mesh in &self.mesh_list {
+    //         if mesh.emesh.len() > 0 {
+    //             let lhs = mesh.emesh[..mesh.emesh().len() - 1];
+    //             let rhs = mesh.emesh[1..mesh.emesh().len()];
+
+    //             let a = std::iter::zip(lhs, rhs).any(|(l, r)| l == r);
+    //         }
+
+    //         let mut uniq = HashSet::new();
+    //         if !mesh.emesh.iter().all(|x| uniq.insert(x)) {
+    //             warn!("Warning: Duplicate EMESH values in fmesh{}", mesh.id);
+    //             warn!(" - Due to poor precision in meshtal file format");
+    //         }
+
+    //         uniq.clear();
+    //         if !mesh.emesh.iter().all(|x| uniq.insert(x)) {
+    //             warn!("Warning: Duplicate TMESH values in fmesh{}", mesh.id);
+    //             warn!(" - Due to poor precision in meshtal file format");
+    //         }
+    //     }
+    // }
 }
 
 /// Preprocessing of tally formats
