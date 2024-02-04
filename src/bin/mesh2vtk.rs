@@ -353,9 +353,7 @@ struct Cli {
     #[arg(help_heading("Vtk options"))]
     #[arg(long)]
     #[arg(value_name = "res")]
-    #[arg(default_value = "1")]
-    #[arg(hide_default_value(true))]
-    resolution: u8,
+    resolution: Option<u8>,
 
     /// Byte ordering (endian)
     ///
@@ -474,7 +472,7 @@ fn get_output_path(mesh: &Mesh, cli: &Cli) -> String {
 fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
     let mut builder = MeshToVtkBuilder::new()
         .include_errors(cli.errors)
-        .resolution(cli.resolution);
+        .resolution(cli.resolution.unwrap_or(1));
 
     let (energies, times) = get_targeted_energies(mesh, cli);
     builder = builder.energy_groups(energies);
@@ -517,25 +515,35 @@ fn parse_index_groups(mesh: &Mesh, cli: &Cli) -> (Vec<usize>, Vec<usize>) {
 }
 
 fn parse_absolute_groups(mesh: &Mesh, cli: &Cli) -> (Vec<usize>, Vec<usize>) {
-    let energies = group_set(&cli.energy);
-    let times = group_set(&cli.time);
+    let energies = if cli.energy.is_empty() {
+        (0..mesh.ebins()).collect()
+    } else {
+        energy_groups_to_index_set(mesh, &group_set(&cli.energy))
+    };
 
-    (
-        energy_groups_to_index_set(mesh, &energies),
-        time_groups_to_index_set(mesh, &times),
-    )
+    let times = if cli.time.is_empty() {
+        (0..mesh.tbins()).collect()
+    } else {
+        time_groups_to_index_set(mesh, &group_set(&cli.time))
+    };
+
+    (times, energies)
 }
 
 fn index_set(targets: &[String], total_idx: usize) -> Vec<usize> {
+    if targets.is_empty() {
+        return (0..total_idx + 1).collect();
+    }
+
     let mut indicies = parse_targets_as_usize(targets);
     if targets.iter().any(|t| t.to_lowercase() == "total") {
         indicies.push(total_idx)
     };
     if indicies.is_empty() {
-        warn!("Warning: Unable to parse indicies provided");
+        debug!("Warning: Unable to parse indicies provided");
         warn!("  - {targets:?}");
-        warn!("  - Falling back to `Total` group");
-        indicies = vec![total_idx];
+        warn!("  - Falling back to all groups");
+        indicies = (0..total_idx + 1).collect();
     } else {
         indicies.sort_by(|a, b| a.partial_cmp(b).unwrap());
         indicies.dedup();
@@ -564,16 +572,8 @@ fn group_set(targets: &[String]) -> Vec<Group> {
     if targets.iter().any(|t| t.to_lowercase() == "total") {
         groups.push(Group::Total)
     };
-    if groups.is_empty() {
-        warn!("Warning: Unable to parse values provided");
-        warn!("  - {targets:?}");
-        warn!("  - Falling back to `Total` group");
-        groups = vec![Group::Total];
-    } else {
-        groups.sort_by(|a, b| a.partial_cmp(b).unwrap());
-        groups.dedup();
-    };
-
+    groups.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    groups.dedup();
     groups
 }
 
@@ -586,8 +586,8 @@ fn energy_groups_to_index_set(mesh: &Mesh, groups: &[Group]) -> Vec<usize> {
     // should never happen but you never know
     if indicies.is_empty() {
         warn!("Warning: No valid energy groups");
-        warn!("  - Falling back to `Total` group");
-        vec![mesh.ebins() - 1]
+        warn!("  - Falling back to all groups");
+        (0..mesh.ebins()).collect()
     } else {
         indicies
     }
@@ -602,8 +602,8 @@ fn time_groups_to_index_set(mesh: &Mesh, groups: &[Group]) -> Vec<usize> {
     // should never happen but you never know
     if indicies.is_empty() {
         warn!("Warning: No valid time groups");
-        warn!("  - Falling back to `Total` group");
-        vec![mesh.tbins() - 1]
+        warn!("  - Falling back to all groups");
+        (0..mesh.tbins()).collect()
     } else {
         indicies
     }
