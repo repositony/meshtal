@@ -35,8 +35,8 @@
 //!
 //! The fields of [MeshToVtk] and [WeightsToVtk] are left public for direct use.
 //! However, builder patterns are also implemented. This helps separate the
-//! configuration from the conversion logic, and is often a style preference for
-//! users. The following examples are therefore equivalent.
+//! configuration from the conversion logic, and is often a style preference.
+//! The following examples are therefore equivalent.
 //!
 //! The builder approach:
 //!
@@ -47,7 +47,7 @@
 //! // Make a new builder, change some values
 //! let mesh_convertor = MeshToVtk::builder()
 //!     .include_errors(true)
-//!     .energy_groups(vec![Group::Total])
+//!     .energy_groups(vec![0]) // first group
 //!     .resolution(3)
 //!     .build();
 //!
@@ -64,7 +64,7 @@
 //! // Make a new instance, change some values
 //! let mut mesh_convertor = MeshToVtk::new();
 //! mesh_convertor.include_errors = true;
-//! mesh_convertor.energy_groups = vec![Group::Total];
+//! mesh_convertor.energy_groups = vec![0]; // first group
 //! mesh_convertor.resolution = 3;
 //!
 //! // Convert the mesh using the parameters set
@@ -231,7 +231,7 @@ pub enum VtkFormat {
 /// // Make a new builder, change some values, and convert the mesh
 /// let mesh_convertor = MeshToVtk::builder()
 ///     .include_errors(true)
-///     .energy_groups(vec![Group::Total])
+///     .energy_groups(vec![0])  // first group
 ///     .resolution(3)
 ///     .build();
 ///
@@ -248,7 +248,7 @@ pub enum VtkFormat {
 /// // Make a new instance, change some values, and convert the mesh
 /// let mut mesh_convertor = MeshToVtk::new();
 /// mesh_convertor.include_errors = true;
-/// mesh_convertor.energy_groups = vec![Group::Total];
+/// mesh_convertor.energy_groups = vec![0];  // first group
 /// mesh_convertor.resolution = 3;
 ///
 /// // Convert to VTK with the default configuration
@@ -369,9 +369,9 @@ pub enum VtkFormat {
 #[derive(Debug, PartialEq)]
 pub struct MeshToVtk {
     /// Target energy group(s)
-    pub energy_groups: Vec<Group>,
+    pub energy_groups: Vec<usize>,
     /// Target energy group(s)
-    pub time_groups: Vec<Group>,
+    pub time_groups: Vec<usize>,
     /// Include errors mesh in output files
     pub include_errors: bool,
     /// Byte ordering as big or little endian
@@ -416,65 +416,76 @@ impl Default for MeshToVtk {
 /// Common use implementations
 impl MeshToVtk {
     /// Collect energy groups, and if none are given just use the Total
-    fn collect_energy_groups(&self, mesh: &Mesh) -> Vec<Group> {
-        let groups = mesh.energy_groups();
-
+    fn collect_energy_group_idx(&self, mesh: &Mesh) -> Vec<usize> {
         // none defined? convert everything
         if self.energy_groups.is_empty() {
             trace!("No energy groups requested, defaulting to all");
-            groups
+            return (0..mesh.ebins()).collect::<Vec<usize>>();
         }
-        // otherwise try to find the relevant groups if within the mesh bounds
-        else {
-            let mut indicies = self
-                .energy_groups
-                .iter()
-                .filter_map(|energy| mesh.find_energy_group_index(*energy).ok())
-                .collect::<Vec<usize>>();
-            trace!("Found {:?}", indicies);
+
+        // filter out anything not valid, usize means < 0 inherently checked
+        let mut indicies = self
+            .energy_groups
+            .iter()
+            .copied()
+            .filter(|e_idx| e_idx < &mesh.ebins())
+            .collect::<Vec<usize>>();
+
+        // clean up the list or just default to all if none of the indicies were
+        // valid
+        if !indicies.is_empty() {
             indicies.sort();
             indicies.dedup();
-
-            indicies.iter().map(|idx| groups[*idx]).collect()
+            indicies
+        } else {
+            warn!("Warning: No valid energy index provided, defaulting to all");
+            (0..mesh.ebins()).collect::<Vec<usize>>()
         }
     }
 
     /// Collect time groups, and if none are given just use the Total
-    fn collect_time_groups(&self, mesh: &Mesh) -> Vec<Group> {
-        let groups = mesh.time_groups();
+    fn collect_time_group_idx(&self, mesh: &Mesh) -> Vec<usize> {
         // none defined? convert everything
         if self.time_groups.is_empty() {
             trace!("No time groups requested, defaulting to all");
-            groups
+            return (0..mesh.tbins()).collect::<Vec<usize>>();
         }
-        // otherwise try to find the relevant groups if within the mesh bounds
-        else {
-            let mut indicies = self
-                .time_groups
-                .iter()
-                .filter_map(|time| mesh.find_time_group_index(*time).ok())
-                .collect::<Vec<usize>>();
+
+        // filter out anything not valid, usize means < 0 inherently checked
+        let mut indicies = self
+            .time_groups
+            .iter()
+            .copied()
+            .filter(|t_idx| t_idx < &mesh.tbins())
+            .collect::<Vec<usize>>();
+
+        // clean up the list or just default to all if none of the indicies were
+        // valid
+        if !indicies.is_empty() {
             indicies.sort();
             indicies.dedup();
-
-            indicies.iter().map(|idx| groups[*idx]).collect()
+            indicies
+        } else {
+            warn!("Warning: No valid time index provided, defaulting to all");
+            (0..mesh.tbins()).collect::<Vec<usize>>()
         }
     }
 
     /// Create a name to display in the output mesh data
-    fn group_name(&self, energy: Group, time: Group) -> String {
-        // decide on energy prefix
-        let energy_prefix = match energy {
-            Group::Value(e) => f!("{e:.2E}MeV_"),
-            Group::Total => "total_".to_string(),
+    fn group_name(&self, mesh: &Mesh, e_idx: usize, t_idx: usize) -> String {
+        // "Energy[0] 2.00E+01 MeV, Time[0] 1.00E+12 shakes, error"
+        // ok to use indexing as already checked by this point
+
+        let energy_prefix = match mesh.energy_groups()[e_idx] {
+            Group::Value(e) => f!("Energy[{e_idx}] {e:.2E} MeV"),
+            Group::Total => f!("Energy[{e_idx}] Total"),
         };
 
-        // decide on time prefix, ommit if there is only one
-        let time_prefix = match time {
-            Group::Value(t) => f!("{t:.2E}shakes_"),
+        let time_prefix = match mesh.time_groups()[t_idx] {
+            Group::Value(t) => f!(", Time[{t_idx}] {t:.2E} MeV"),
             Group::Total => {
                 if self.time_groups.len() > 1 {
-                    "total_".to_string()
+                    f!(", Time[{t_idx}] Total")
                 } else {
                     "".to_string()
                 }
@@ -527,16 +538,15 @@ impl MeshToVtk {
         trace!("Collecting attributes");
         let mut attributes: Attributes = Attributes::new();
 
-        let energy_groups = self.collect_energy_groups(mesh);
-        let time_groups = self.collect_time_groups(mesh);
+        let energy_groups = self.collect_energy_group_idx(mesh);
+        let time_groups = self.collect_time_group_idx(mesh);
 
-        for e in &energy_groups {
-            trace!("Cell data for E = {e} MeV");
-            for t in &time_groups {
-                trace!("  |__ T = {t} shakes");
+        for e_idx in &energy_groups {
+            trace!("Cell data for group e[{e_idx}]");
+            for t_idx in &time_groups {
+                trace!("  |__ group t[{t_idx}]");
 
-                // todo unnecessary allocation
-                let voxels = mesh.slice_voxels_by_group(*e, *t).unwrap();
+                let voxels = mesh.slice_voxels_by_idx(*e_idx, *t_idx).unwrap();
 
                 let (results, errors): (Vec<f64>, Vec<f64>) = voxels
                     .iter()
@@ -546,7 +556,7 @@ impl MeshToVtk {
                     .unzip();
 
                 let cell_data = DataArray {
-                    name: self.group_name(*e, *t) + "result",
+                    name: self.group_name(mesh, *e_idx, *t_idx),
                     elem: ElementType::Scalars {
                         num_comp: 1,
                         lookup_table: None,
@@ -558,7 +568,7 @@ impl MeshToVtk {
                 // do the same for the errors if they are to be included
                 if self.include_errors {
                     let cell_data = DataArray {
-                        name: self.group_name(*e, *t) + "error",
+                        name: self.group_name(mesh, *e_idx, *t_idx) + ", error",
                         elem: ElementType::Scalars {
                             num_comp: 1,
                             lookup_table: None,
@@ -761,15 +771,15 @@ impl MeshToVtk {
         trace!("Collecting cylindrical attributes");
         let mut attributes: Attributes = Attributes::new();
 
-        let energy_groups = self.collect_energy_groups(mesh);
-        let time_groups = self.collect_time_groups(mesh);
+        let energy_groups = self.collect_energy_group_idx(mesh);
+        let time_groups = self.collect_time_group_idx(mesh);
 
-        for e in &energy_groups {
-            trace!("Cell data for E = {e} MeV");
-            for t in &time_groups {
-                trace!("  |__ T = {t} shakes");
+        for e_idx in &energy_groups {
+            trace!("Cell data for group e[{e_idx}]");
+            for t_idx in &time_groups {
+                trace!("  |__ group t[{t_idx}]");
 
-                let voxels = mesh.slice_voxels_by_group(*e, *t).unwrap().to_vec();
+                let voxels = mesh.slice_voxels_by_idx(*e_idx, *t_idx).unwrap().to_vec();
 
                 let (mut results, mut errors): (Vec<f64>, Vec<f64>) = voxels
                     .into_iter()
@@ -782,7 +792,7 @@ impl MeshToVtk {
                 errors = Self::repeat_values(errors, self.get_resolution(&mesh.kints));
 
                 let cell_data = DataArray {
-                    name: self.group_name(*e, *t) + "result",
+                    name: self.group_name(mesh, *e_idx, *t_idx),
                     elem: ElementType::Scalars {
                         num_comp: 1,
                         lookup_table: None,
@@ -794,7 +804,7 @@ impl MeshToVtk {
                 // do the same for the errors if they are to be included
                 if self.include_errors {
                     let cell_data = DataArray {
-                        name: self.group_name(*e, *t) + "error",
+                        name: self.group_name(mesh, *e_idx, *t_idx) + ", error",
                         elem: ElementType::Scalars {
                             num_comp: 1,
                             lookup_table: None,
@@ -886,9 +896,9 @@ impl MeshToVtk {
 /// is often a style preference for many users.
 pub struct MeshToVtkBuilder {
     /// Target energy group(s)
-    energy_groups: Vec<Group>,
+    energy_groups: Vec<usize>,
     /// Target energy group(s)
-    time_groups: Vec<Group>,
+    time_groups: Vec<usize>,
     /// Include errors mesh in output files
     include_errors: bool,
     /// Byte ordering as big or little endian
@@ -921,7 +931,7 @@ impl MeshToVtkBuilder {
     ///
     /// By default all energy groups are included in the vtk. Specific energy
     /// groups can be provided to reduce file sizes.
-    pub fn energy_groups(mut self, groups: Vec<Group>) -> Self {
+    pub fn energy_groups(mut self, groups: Vec<usize>) -> Self {
         debug!("Set energy groups to\n {:?}", groups);
         self.energy_groups = groups;
         self
@@ -931,7 +941,7 @@ impl MeshToVtkBuilder {
     ///
     /// By default all time groups are included in the vtk. Specific time
     /// groups can be provided to reduce file sizes.
-    pub fn time_groups(mut self, groups: Vec<Group>) -> Self {
+    pub fn time_groups(mut self, groups: Vec<usize>) -> Self {
         debug!("Set time groups to\n {:?}", groups);
         self.time_groups = groups;
         self

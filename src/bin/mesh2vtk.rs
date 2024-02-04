@@ -135,7 +135,7 @@ use meshtal::utils::*;
 use meshtal::vtk::{write_vtk, MeshToVtk, MeshToVtkBuilder, VtkFormat};
 
 // external crates
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use clap::{arg, Parser, ValueEnum};
 use log::*;
 use vtkio::model::ByteOrder;
@@ -182,28 +182,32 @@ fn main() -> Result<()> {
 /// --------
 ///
 ///  Typical use:
-///     $ mesh2vtk run0.msht 104 -o my_output
+///     $ mesh2vtk my_file.msht 104 -o my_output
 ///
 ///  Extract only the 'Total' energy and time groups:
-///     $ mesh2vtk /path/to/meshtal.msht 104 --total
+///     $ mesh2vtk /path/to/file.msht 104 --total
 ///
 ///  Include voxel errors in the output:
-///     $ mesh2vtk /path/to/meshtal.msht 104 --errors
+///     $ mesh2vtk /path/to/file.msht 104 --errors
 ///
-///  Extract specific energy and time groups:
-///     $ mesh2vtk /path/to/meshtal.msht 104  \
-///               --energy 1.0 1e5            \
-///               --time 1e12 total
+///  Filter energy/time groups by index:
+///     $ mesh2vtk /path/to/file.msht 104  \
+///               --energy 0 2 6           \
+///               --time 1 total
 ///
-///  Output legacy in ascii format, with error meshes:
-///     $ mesh2vtk /path/to/meshtal.msht 104  \
-///               --format legacy-ascii       \
-///               --errors
+///  Filter energy/time groups by value:
+///     $ mesh2vtk /path/to/file.msht 104  \
+///               --energy 1.0 20.0 1e2    \
+///               --time 1e12 total        \
+///               --absolute
+///
+///  Output VTK in the old ASCII file format:
+///     $ mesh2vtk /path/to/file.msht 104  \
+///               --format legacy-ascii       
 ///
 ///  Alter basic mesh properties:
-///     $ mesh2vtk /path/to/meshtal.msht 104  \
-///               --scale 1.0                 \
-///               --translate 0.5 -5.0 20.0
+///     $ mesh2vtk /path/to/file.msht 104  \
+///               --scale 1.0                 
 ///
 /// Notes
 /// -----
@@ -218,7 +222,6 @@ fn main() -> Result<()> {
 ///
 /// Meshes with a single bin for EMESH/TMESH are labelled the 'Total'
 /// group for consistency.
-
 #[derive(Parser)]
 #[command(
     verbatim_doc_comment,
@@ -260,18 +263,21 @@ struct Cli {
     /// Multiply all results by a constant
     ///
     /// All results in the mesh are rescaled by the value provided. e.g. --scale
-    /// 10 will multiply the result of every voxel by 10.0. Errors are relative
+    /// 10.0 will multiply the result of every voxel by 10. Errors are relative
     /// and are therefore unchanged.
     #[arg(help_heading("Mesh options"))]
     #[arg(short, long)]
     #[arg(value_name = "num")]
     scale: Option<f64>,
 
-    /// Target energy group(s)
+    /// Filter energy group(s)
     ///
     /// By default all energy groups are included in the vtk. Specific energy
-    /// groups can be provided to reduce file sizes. Values may be any
-    /// combination of positive numbers and the word 'total'.
+    /// groups can be specified by index. Values may be any combination of
+    /// positive integers and the word 'total'.
+    ///
+    /// For filtering by real energy values in MeV rather than group index, use
+    /// the --absolute falg.
     #[arg(help_heading("Mesh options"))]
     #[arg(long)]
     #[arg(value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -280,11 +286,14 @@ struct Cli {
     #[arg(value_name = "list")]
     energy: Vec<String>,
 
-    /// Target time group(s)
+    /// Filter time group(s)
     ///
     /// By default all time groups are included in the vtk. Specific time
-    /// groups can be provided to reduce file sizes. Values may be any
-    /// combination of numbers and the word 'total'.
+    /// groups can be specified by index. Values may be any combination of
+    /// positive integers and the word 'total'.
+    ///
+    /// For filtering by real time values in shakes rather than group index, use
+    /// the --absolute flag.
     #[arg(help_heading("Mesh options"))]
     #[arg(long)]
     #[arg(value_parser, num_args = 1.., value_delimiter = ' ')]
@@ -294,14 +303,15 @@ struct Cli {
     #[arg(allow_negative_numbers(true))]
     time: Vec<String>,
 
-    /// Interpret target groups as MeV/shakes
+    /// Interpret filter values as MeV/shakes
     ///
     /// By default the values passed to the --energy and --time arguments are
-    /// assumed to be group index. This is to avaoid any precision problems.
+    /// assumed to be group index. This is to avoid any issues resulting from
+    /// poor output precisions in the mesh tally files.
     ///
-    /// Since it is arguably easier to provide real values rather than knowing
-    /// the group index, this functionality is also available. Warnings are
-    /// given whenever using values over the index is a bad idea.
+    /// Using real values instead of the index is therefore opt-in, and use of
+    /// this flag indicates preference. Warnings are given whenever using values
+    /// over the index is a bad idea.
     #[arg(help_heading("Mesh options"))]
     #[arg(short, long)]
     absolute: bool,
@@ -343,7 +353,9 @@ struct Cli {
     #[arg(help_heading("Vtk options"))]
     #[arg(long)]
     #[arg(value_name = "res")]
-    resolution: Option<u8>,
+    #[arg(default_value = "1")]
+    #[arg(hide_default_value(true))]
+    resolution: u8,
 
     /// Byte ordering (endian)
     ///
@@ -443,25 +455,30 @@ fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     Ok(std::mem::take(&mut mesh[0]))
 }
 
+fn get_output_path(mesh: &Mesh, cli: &Cli) -> String {
+    let name = cli.output.clone().unwrap_or(String::from("fmesh"));
+
+    let extension = match cli.format {
+        VtkFormat::Xml => match mesh.geometry {
+            Geometry::Rectangular => "vtr",
+            Geometry::Cylindrical => "vtu",
+        },
+        _ => "vtk",
+    };
+
+    let path = f!("{}_{}.{}", name, cli.number, extension);
+    debug!("Set output path to {path}");
+    path
+}
+
 fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
-    let mut builder = MeshToVtkBuilder::new().include_errors(cli.errors);
+    let mut builder = MeshToVtkBuilder::new()
+        .include_errors(cli.errors)
+        .resolution(cli.resolution);
 
-    if cli.total {
-        debug!("Set all groups to 'Total' only");
-        builder = builder.energy_groups(vec![Group::Total]);
-        builder = builder.time_groups(vec![Group::Total]);
-    } else {
-        // Could easily all be nonsense, so default to getting all groups if parse fails
-        let energy_groups = parse_groups(&cli.energy).unwrap_or(mesh.energy_groups());
-        builder = builder.energy_groups(energy_groups);
-
-        let time_groups = parse_groups(&cli.time).unwrap_or(mesh.time_groups());
-        builder = builder.time_groups(time_groups);
-    }
-
-    if let Some(resolution) = cli.resolution {
-        builder = builder.resolution(resolution);
-    }
+    let (energies, times) = get_targeted_energies(mesh, cli);
+    builder = builder.energy_groups(energies);
+    builder = builder.time_groups(times);
 
     builder = builder.byte_order(match cli.endian {
         CliByteOrder::LittleEndian => ByteOrder::LittleEndian,
@@ -478,78 +495,116 @@ fn converter_init(mesh: &Mesh, cli: &Cli) -> MeshToVtk {
     builder.build()
 }
 
-fn get_targeted_groups(mesh: &Mesh, cli: &Cli) {
+fn get_targeted_energies(mesh: &Mesh, cli: &Cli) -> (Vec<usize>, Vec<usize>) {
     // simple case of --total flag seen
     if cli.total {
-        debug!("Set all groups to 'Total' only");
-        return vec![Group::Total];
+        debug!("Set energy groups to 'Total' only");
+        return (vec![mesh.ebins() - 1], vec![mesh.tbins() - 1]);
     }
 
-    // then we want to find targeted groups by either index or value
+    // then we want to find targeted groups by either index or absolute value
     match cli.absolute {
-        false => parse_index_groups(mesh, &cli.energy),
-        true => parse_absolute_groups(mesh, &cli.energy),
+        false => parse_index_groups(mesh, cli),
+        true => parse_absolute_groups(mesh, cli),
     }
 }
 
-fn parse_index_groups(mesh: &Mesh, targets: &[String]) -> Result<Vec<Group>> {
-    let mut values = targets
+fn parse_index_groups(mesh: &Mesh, cli: &Cli) -> (Vec<usize>, Vec<usize>) {
+    (
+        index_set(&cli.energy, mesh.ebins() - 1),
+        index_set(&cli.time, mesh.tbins() - 1),
+    )
+}
+
+fn parse_absolute_groups(mesh: &Mesh, cli: &Cli) -> (Vec<usize>, Vec<usize>) {
+    let energies = group_set(&cli.energy);
+    let times = group_set(&cli.time);
+
+    (
+        energy_groups_to_index_set(mesh, &energies),
+        time_groups_to_index_set(mesh, &times),
+    )
+}
+
+fn index_set(targets: &[String], total_idx: usize) -> Vec<usize> {
+    let mut indicies = parse_targets_as_usize(targets);
+    if targets.iter().any(|t| t.to_lowercase() == "total") {
+        indicies.push(total_idx)
+    };
+    if indicies.is_empty() {
+        warn!("Warning: Unable to parse indicies provided");
+        warn!("  - {targets:?}");
+        warn!("  - Falling back to `Total` group");
+        indicies = vec![total_idx];
+    } else {
+        indicies.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        indicies.dedup();
+    };
+
+    indicies
+}
+
+fn parse_targets_as_usize(targets: &[String]) -> Vec<usize> {
+    targets
+        .iter()
+        .filter_map(|group| group.parse::<usize>().ok())
+        .collect()
+}
+
+fn parse_targets_as_group(targets: &[String]) -> Vec<Group> {
+    targets
         .iter()
         .filter_map(|group| group.parse::<f64>().ok())
         .map(|v| Group::Value(v))
-        .collect::<Vec<Group>>();
-
-    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    values.dedup();
-
-    if targets.iter().any(|t| t.to_lowercase() == "total") {
-        values.push(Group::Total)
-    };
-
-    // Allow the caller to decide what to do with a failed parse of inputs
-    if values.is_empty() {
-        Err(anyhow!("Unable to parse the groups provided"))
-    } else {
-        Ok(values)
-    }
+        .collect::<Vec<Group>>()
 }
 
-#[allow(clippy::redundant_closure)]
-// Get any entries that parse into a number or 'total'
-fn parse_absolute_groups(mesh: &Mesh, targets: &[String]) -> Result<Vec<Group>> {
-    let mut values = targets
+fn group_set(targets: &[String]) -> Vec<Group> {
+    let mut groups = parse_targets_as_group(targets);
+    if targets.iter().any(|t| t.to_lowercase() == "total") {
+        groups.push(Group::Total)
+    };
+    if groups.is_empty() {
+        warn!("Warning: Unable to parse values provided");
+        warn!("  - {targets:?}");
+        warn!("  - Falling back to `Total` group");
+        groups = vec![Group::Total];
+    } else {
+        groups.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        groups.dedup();
+    };
+
+    groups
+}
+
+fn energy_groups_to_index_set(mesh: &Mesh, groups: &[Group]) -> Vec<usize> {
+    let indicies = groups
         .iter()
-        .filter_map(|group| group.parse::<f64>().ok())
-        .map(|v| Group::Value(v))
-        .collect::<Vec<Group>>();
+        .filter_map(|group| mesh.find_energy_group_index(*group).ok())
+        .collect::<Vec<usize>>();
 
-    values.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    values.dedup();
-
-    if targets.iter().any(|t| t.to_lowercase() == "total") {
-        values.push(Group::Total)
-    };
-
-    // Allow the caller to decide what to do with a failed parse of inputs
-    if values.is_empty() {
-        Err(anyhow!("Unable to parse the groups provided"))
+    // should never happen but you never know
+    if indicies.is_empty() {
+        warn!("Warning: No valid energy groups");
+        warn!("  - Falling back to `Total` group");
+        vec![mesh.ebins() - 1]
     } else {
-        Ok(values)
+        indicies
     }
 }
 
-fn get_output_path(mesh: &Mesh, cli: &Cli) -> String {
-    let name = cli.output.clone().unwrap_or(String::from("fmesh"));
+fn time_groups_to_index_set(mesh: &Mesh, groups: &[Group]) -> Vec<usize> {
+    let indicies = groups
+        .iter()
+        .filter_map(|group| mesh.find_time_group_index(*group).ok())
+        .collect::<Vec<usize>>();
 
-    let extension = match cli.format {
-        VtkFormat::Xml => match mesh.geometry {
-            Geometry::Rectangular => "vtr",
-            Geometry::Cylindrical => "vtu",
-        },
-        _ => "vtk",
-    };
-
-    let path = f!("{}_{}.{}", name, cli.number, extension);
-    debug!("Set output path to {path}");
-    path
+    // should never happen but you never know
+    if indicies.is_empty() {
+        warn!("Warning: No valid time groups");
+        warn!("  - Falling back to `Total` group");
+        vec![mesh.tbins() - 1]
+    } else {
+        indicies
+    }
 }
