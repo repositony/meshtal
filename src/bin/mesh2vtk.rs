@@ -224,7 +224,7 @@ fn main() -> Result<()> {
     verbatim_doc_comment,
     arg_required_else_help(true),
     before_help(banner()),
-    after_help("Typical use: mesh2vtk run0.msht 104 -o my_output \n\nNOTE: --help shows more detail and examples"),
+    after_help("Typical use: mesh2vtk file.msht 104 -o my_output \n\nNOTE: --help shows defaults, options, and examples"),
     term_width(70),
     hide_possible_values(true),
     override_usage("mesh2vtk <meshtal> <number> [options]")
@@ -257,6 +257,16 @@ struct Cli {
     #[arg(short, long)]
     errors: bool,
 
+    /// Multiply all results by a constant
+    ///
+    /// All results in the mesh are rescaled by the value provided. e.g. --scale
+    /// 10 will multiply the result of every voxel by 10.0. Errors are relative
+    /// and are therefore unchanged.
+    #[arg(help_heading("Mesh options"))]
+    #[arg(short, long)]
+    #[arg(value_name = "num")]
+    scale: Option<f64>,
+
     /// Target energy group(s)
     ///
     /// By default all energy groups are included in the vtk. Specific energy
@@ -284,15 +294,17 @@ struct Cli {
     #[arg(allow_negative_numbers(true))]
     time: Vec<String>,
 
-    /// Multiply all results by a constant
+    /// Interpret target groups as MeV/shakes
     ///
-    /// All results in the mesh are rescaled by the value provided. e.g. --scale
-    /// 10 will multiply the result of every voxel by 10.0. Errors are relative
-    /// and are therefore unchanged.
+    /// By default the values passed to the --energy and --time arguments are
+    /// assumed to be group index. This is to avaoid any precision problems.
+    ///
+    /// Since it is arguably easier to provide real values rather than knowing
+    /// the group index, this functionality is also available. Warnings are
+    /// given whenever using values over the index is a bad idea.
     #[arg(help_heading("Mesh options"))]
     #[arg(short, long)]
-    #[arg(value_name = "cst")]
-    scale: Option<f64>,
+    absolute: bool,
 
     /// Name of output file (excl. extension)
     ///
@@ -314,7 +326,7 @@ struct Cli {
     #[arg(hide_default_value(true))]
     #[arg(default_value_t = VtkFormat::Xml)]
     #[arg(verbatim_doc_comment)]
-    #[arg(value_name = "format")]
+    #[arg(value_name = "fmt")]
     format: VtkFormat,
 
     /// Cylindrical mesh resolution
@@ -333,7 +345,7 @@ struct Cli {
     #[arg(value_name = "res")]
     resolution: Option<u8>,
 
-    /// Byte ordering
+    /// Byte ordering (endian)
     ///
     /// Visit only reads big endian, most sytems are little endian.
     /// Defaults to big endian for convenience over performance.
@@ -344,7 +356,7 @@ struct Cli {
     #[arg(hide_default_value(true))]
     #[arg(default_value_t = CliByteOrder::BigEndian)]
     #[arg(verbatim_doc_comment)]
-    #[arg(value_name = "endian")]
+    #[arg(value_name = "end")]
     endian: CliByteOrder,
 
     /// Comression method for xml
@@ -359,7 +371,7 @@ struct Cli {
     #[arg(hide_default_value(true))]
     #[arg(default_value_t = CliCompressor::LZMA)]
     #[arg(verbatim_doc_comment)]
-    #[arg(value_name = "compressor")]
+    #[arg(value_name = "cmp")]
     compressor: CliCompressor,
 
     // * Flags
@@ -378,7 +390,6 @@ struct Cli {
 }
 
 // Wrapper for byte order used by vtkio
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum CliByteOrder {
     BigEndian,
@@ -386,7 +397,6 @@ enum CliByteOrder {
 }
 
 // Wrapper for compression strategy used by vtkio
-
 #[allow(clippy::upper_case_acronyms)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
 enum CliCompressor {
