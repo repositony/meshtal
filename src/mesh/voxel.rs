@@ -9,6 +9,7 @@
 
 // internal modules
 use crate::utils::*;
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 
 /// Representation of a single voxel in the mesh
 ///
@@ -53,6 +54,84 @@ impl Voxel {
     ///
     pub fn absolute_error(&self) -> f64 {
         self.result * self.error
+    }
+}
+
+impl Add for Voxel {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        let result = self.result + rhs.result;
+        let error = (self.absolute_error().powi(2) + rhs.absolute_error().powi(2)).sqrt() / result;
+
+        Self {
+            index: self.index,
+            result,
+            error,
+        }
+    }
+}
+
+impl AddAssign for Voxel {
+    fn add_assign(&mut self, rhs: Self) {
+        *self = *self + rhs
+    }
+}
+
+impl Sub for Voxel {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        let result = self.result - rhs.result;
+        let error = (self.absolute_error().powi(2) + rhs.absolute_error().powi(2)).sqrt() / result;
+
+        Self {
+            index: self.index,
+            result,
+            error,
+        }
+    }
+}
+
+impl SubAssign for Voxel {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs
+    }
+}
+
+impl Mul for Voxel {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        Self {
+            index: self.index,
+            result: self.result * rhs.result,
+            error: (self.error.powi(2) + rhs.error.powi(2)).sqrt(),
+        }
+    }
+}
+
+impl MulAssign for Voxel {
+    fn mul_assign(&mut self, rhs: Self) {
+        *self = *self * rhs
+    }
+}
+
+impl Div for Voxel {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self {
+        Self {
+            index: self.index,
+            result: self.result / rhs.result,
+            error: (self.error.powi(2) + rhs.error.powi(2)).sqrt(),
+        }
+    }
+}
+
+impl DivAssign for Voxel {
+    fn div_assign(&mut self, rhs: Self) {
+        *self = *self / rhs
     }
 }
 
