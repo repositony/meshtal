@@ -78,7 +78,7 @@ use serde::{Deserialize, Serialize};
 /// | 36 | negative kaon                         | ?        | k_minus   |
 /// | 37 | heavy ions                            | #        | heavyion  |
 ///
-/// *Note that the positon particle designator is invalid on the FMESH card
+/// *Note that the positron particle designator is invalid on the FMESH card
 /// because it is treated as an electron. It therefore has no meshtal output
 /// tag.  
 #[repr(u8)]
@@ -188,6 +188,55 @@ impl Particle {
     }
 }
 
+/// Convert from any valid numerical designator
+impl TryFrom<u8> for Particle {
+    type Error = anyhow::Error;
+
+    fn try_from(v: u8) -> Result<Self, Self::Error> {
+        match v {
+            0 => Ok(Self::Unknown),
+            1 => Ok(Self::Neutron),
+            2 => Ok(Self::Photon),
+            3 => Ok(Self::Electron),
+            4 => Ok(Self::NegativeMuon),
+            5 => Ok(Self::AntiNeutron),
+            6 => Ok(Self::ElectronNeutrino),
+            7 => Ok(Self::MuonNeutrino),
+            8 => Ok(Self::Positron),
+            9 => Ok(Self::Proton),
+            10 => Ok(Self::LambdaBaryon),
+            11 => Ok(Self::PosSigmaBaryon),
+            12 => Ok(Self::NegSigmaBaryon),
+            13 => Ok(Self::XiBaryon),
+            14 => Ok(Self::NegXiBaryon),
+            15 => Ok(Self::OmegaBaryon),
+            16 => Ok(Self::PosMuon),
+            17 => Ok(Self::AntiElectronNeutrino),
+            18 => Ok(Self::AntiMuonNeutrino),
+            19 => Ok(Self::AntiProton),
+            20 => Ok(Self::PosPion),
+            21 => Ok(Self::NeuPion),
+            22 => Ok(Self::PosKaon),
+            23 => Ok(Self::ShortKaon),
+            24 => Ok(Self::LongKaon),
+            25 => Ok(Self::AntiLambdaBaryon),
+            26 => Ok(Self::AntiPosSigmaBaryon),
+            27 => Ok(Self::AntiNegSigmaBaryon),
+            28 => Ok(Self::AntiNeuXiBaryon),
+            29 => Ok(Self::XiBaryon),
+            30 => Ok(Self::AntiOmega),
+            31 => Ok(Self::Deuteron),
+            32 => Ok(Self::Triton),
+            33 => Ok(Self::Helion),
+            34 => Ok(Self::Alpha),
+            35 => Ok(Self::NegPion),
+            36 => Ok(Self::NegKaon),
+            37 => Ok(Self::HeavyIon),
+            _ => Err(anyhow!("Could not infer particle from \"{v}\"")),
+        }
+    }
+}
+
 /// Convert from any valid designator, name, or meshtal output tag
 impl TryFrom<&str> for Particle {
     type Error = anyhow::Error;
@@ -239,55 +288,6 @@ impl TryFrom<&str> for Particle {
             "36" | "?" | "k_minus" | "negative kaon" => Ok(Self::NegKaon),
             "37" | "#" | "heavyion" | "heavy ions" => Ok(Self::HeavyIon),
             _ => Err(anyhow!("Could not infer particle from \"{s}\"")),
-        }
-    }
-}
-
-/// Convert from any valid numerical designator
-impl TryFrom<u8> for Particle {
-    type Error = anyhow::Error;
-
-    fn try_from(v: u8) -> Result<Self, Self::Error> {
-        match v {
-            0 => Ok(Self::Unknown),
-            1 => Ok(Self::Neutron),
-            2 => Ok(Self::Photon),
-            3 => Ok(Self::Electron),
-            4 => Ok(Self::NegativeMuon),
-            5 => Ok(Self::AntiNeutron),
-            6 => Ok(Self::ElectronNeutrino),
-            7 => Ok(Self::MuonNeutrino),
-            8 => Ok(Self::Positron),
-            9 => Ok(Self::Proton),
-            10 => Ok(Self::LambdaBaryon),
-            11 => Ok(Self::PosSigmaBaryon),
-            12 => Ok(Self::NegSigmaBaryon),
-            13 => Ok(Self::XiBaryon),
-            14 => Ok(Self::NegXiBaryon),
-            15 => Ok(Self::OmegaBaryon),
-            16 => Ok(Self::PosMuon),
-            17 => Ok(Self::AntiElectronNeutrino),
-            18 => Ok(Self::AntiMuonNeutrino),
-            19 => Ok(Self::AntiProton),
-            20 => Ok(Self::PosPion),
-            21 => Ok(Self::NeuPion),
-            22 => Ok(Self::PosKaon),
-            23 => Ok(Self::ShortKaon),
-            24 => Ok(Self::LongKaon),
-            25 => Ok(Self::AntiLambdaBaryon),
-            26 => Ok(Self::AntiPosSigmaBaryon),
-            27 => Ok(Self::AntiNegSigmaBaryon),
-            28 => Ok(Self::AntiNeuXiBaryon),
-            29 => Ok(Self::XiBaryon),
-            30 => Ok(Self::AntiOmega),
-            31 => Ok(Self::Deuteron),
-            32 => Ok(Self::Triton),
-            33 => Ok(Self::Helion),
-            34 => Ok(Self::Alpha),
-            35 => Ok(Self::NegPion),
-            36 => Ok(Self::NegKaon),
-            37 => Ok(Self::HeavyIon),
-            _ => Err(anyhow!("Could not infer particle from \"{v}\"")),
         }
     }
 }
