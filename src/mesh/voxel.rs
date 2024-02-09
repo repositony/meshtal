@@ -1,11 +1,4 @@
-//! Representation of voxels in a mesh
-//!
-//! Contains an index used for consistently ordering voxels across the various
-//! mesh output formats. Parsing line-by-line rather than trying to load an
-//! entire file into memory leaves the voxels in an inconsistent order.
-//!
-//! This may actually be better off under the mesh module file if the imptation
-//! remains small.
+//! Module for voxel-related data and implementations
 
 // internal modules
 use crate::utils::*;
@@ -25,7 +18,14 @@ use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 /// The current implementation is a compromise between the two at 24 Bytes, and
 /// all other values may be derived from the [Mesh](crate::mesh::Mesh) given the
 /// voxel index.
-#[derive(Debug, Clone, Copy, PartialEq)]
+///
+/// Several operators are implemented for convenience where it makes sense,
+/// including Addition (`+`, `+=`), Subtraction (`-`, `-=`),
+/// Multiplication (`*`, `*=`), and Division (`/`, `/=`).
+///
+/// In all cases, the LHS index is taken, and the RHS may be either another
+/// [Voxel] or anything that can be converted into an `f64` primitive.
+#[derive(Debug, Default, Clone, Copy, PartialEq)]
 pub struct Voxel {
     /// Global voxel index
     pub index: usize,
@@ -57,9 +57,20 @@ impl Voxel {
     }
 }
 
-impl Add for Voxel {
-    type Output = Self;
+impl std::fmt::Display for Voxel {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        write!(
+            f,
+            "{:<5.0}{:>13}{:>13}",
+            self.index,
+            self.result.sci(5, 2),
+            self.error.sci(5, 2)
+        )
+    }
+}
 
+impl Add<Self> for Voxel {
+    type Output = Self;
     fn add(self, rhs: Self) -> Self {
         let result = self.result + rhs.result;
         let error = (self.absolute_error().powi(2) + rhs.absolute_error().powi(2)).sqrt() / result;
@@ -72,15 +83,37 @@ impl Add for Voxel {
     }
 }
 
-impl AddAssign for Voxel {
+impl AddAssign<Self> for Voxel {
     fn add_assign(&mut self, rhs: Self) {
-        *self = *self + rhs
+        *self = *self + rhs;
     }
 }
 
-impl Sub for Voxel {
+impl<T> Add<T> for Voxel
+where
+    T: Into<f64>,
+{
     type Output = Self;
+    fn add(self, rhs: T) -> Self {
+        Self {
+            index: self.index,
+            result: self.result + rhs.into(),
+            error: self.error,
+        }
+    }
+}
 
+impl<T> AddAssign<T> for Voxel
+where
+    T: Into<f64>,
+{
+    fn add_assign(&mut self, rhs: T) {
+        *self = *self + rhs.into();
+    }
+}
+
+impl Sub<Self> for Voxel {
+    type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         let result = self.result - rhs.result;
         let error = (self.absolute_error().powi(2) + rhs.absolute_error().powi(2)).sqrt() / result;
@@ -93,15 +126,37 @@ impl Sub for Voxel {
     }
 }
 
-impl SubAssign for Voxel {
+impl SubAssign<Self> for Voxel {
     fn sub_assign(&mut self, rhs: Self) {
-        *self = *self - rhs
+        *self = *self - rhs;
     }
 }
 
-impl Mul for Voxel {
+impl<T> Sub<T> for Voxel
+where
+    T: Into<f64>,
+{
     type Output = Self;
+    fn sub(self, rhs: T) -> Self {
+        Self {
+            index: self.index,
+            result: self.result - rhs.into(),
+            error: self.error,
+        }
+    }
+}
 
+impl<T> SubAssign<T> for Voxel
+where
+    T: Into<f64>,
+{
+    fn sub_assign(&mut self, rhs: T) {
+        *self = *self - rhs.into();
+    }
+}
+
+impl Mul<Self> for Voxel {
+    type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         Self {
             index: self.index,
@@ -111,15 +166,37 @@ impl Mul for Voxel {
     }
 }
 
-impl MulAssign for Voxel {
+impl MulAssign<Self> for Voxel {
     fn mul_assign(&mut self, rhs: Self) {
-        *self = *self * rhs
+        *self = *self * rhs;
     }
 }
 
-impl Div for Voxel {
+impl<T> Mul<T> for Voxel
+where
+    T: Into<f64>,
+{
     type Output = Self;
+    fn mul(self, rhs: T) -> Self {
+        Self {
+            index: self.index,
+            result: self.result * rhs.into(),
+            error: self.error,
+        }
+    }
+}
 
+impl<T> MulAssign<T> for Voxel
+where
+    T: Into<f64>,
+{
+    fn mul_assign(&mut self, rhs: T) {
+        *self = *self * rhs.into();
+    }
+}
+
+impl Div<Self> for Voxel {
+    type Output = Self;
     fn div(self, rhs: Self) -> Self {
         Self {
             index: self.index,
@@ -129,31 +206,32 @@ impl Div for Voxel {
     }
 }
 
-impl DivAssign for Voxel {
+impl DivAssign<Self> for Voxel {
     fn div_assign(&mut self, rhs: Self) {
-        *self = *self / rhs
+        *self = *self / rhs;
     }
 }
 
-impl Default for Voxel {
-    fn default() -> Self {
+impl<T> Div<T> for Voxel
+where
+    T: Into<f64>,
+{
+    type Output = Self;
+    fn div(self, rhs: T) -> Self {
         Self {
-            index: 0,
-            result: 0.0,
-            error: 0.0,
+            index: self.index,
+            result: self.result / rhs.into(),
+            error: self.error,
         }
     }
 }
 
-impl std::fmt::Display for Voxel {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(
-            f,
-            "{:<5.0}{:>13}{:>13}",
-            self.index,
-            self.result.sci(5, 2),
-            self.error.sci(5, 2)
-        )
+impl<T> DivAssign<T> for Voxel
+where
+    T: Into<f64>,
+{
+    fn div_assign(&mut self, rhs: T) {
+        *self = *self / rhs.into();
     }
 }
 
