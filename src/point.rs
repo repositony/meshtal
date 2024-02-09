@@ -195,9 +195,9 @@ pub fn point_to_voxel_index(mesh: &Mesh, point: &Point) -> Result<usize> {
     let t_idx: usize = mesh.find_time_group_index(point.t)?;
 
     // find the index using the gemetry bounds
-    let i_idx: usize = Mesh::find_bin_idx(&mesh.imesh, point.i)?;
-    let j_idx: usize = Mesh::find_bin_idx(&mesh.jmesh, point.j)?;
-    let k_idx: usize = Mesh::find_bin_idx(&mesh.kmesh, point.k)?;
+    let i_idx: usize = Mesh::find_bin_exclusive(point.i, &mesh.imesh)?;
+    let j_idx: usize = Mesh::find_bin_exclusive(point.j, &mesh.jmesh)?;
+    let k_idx: usize = Mesh::find_bin_exclusive(point.k, &mesh.kmesh)?;
 
     Ok(mesh.etijk_to_voxel_index(e_idx, t_idx, i_idx, j_idx, k_idx))
 }
