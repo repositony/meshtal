@@ -23,7 +23,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! meshtal = "0.1.0"
+//! meshtal = "0.13.1"
 //! ```
 //!
 //! Example to read in a mesh tally and perform varius operations.
