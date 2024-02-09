@@ -12,7 +12,7 @@ use std::path::Path;
 // external crates
 use anyhow::{anyhow, bail, Context, Result};
 use kdam::{Bar, BarBuilder, BarExt};
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use nom::IResult;
 
 /// A generalised reader for legacy meshtal files of any type
@@ -108,8 +108,8 @@ impl MeshtalReader {
         // sort the list for consistency between output formats
         self.sort_voxels();
 
-        // // warn about potential precision issues
-        // self.check_precision_issues();
+        // warn about potential precision issues
+        self.warn_precision_issues();
 
         // do not care about the reader, so give the meshes to the caller
         // this saves cloning the data which is a massive win
@@ -236,6 +236,7 @@ impl MeshtalReader {
             .unit(" lines")
             .unit_scale(true)
             .disable(self.disable_progress)
+            .bar_format("{count} lines [{rate} lines/s]   ")
             .build()
             .unwrap()
     }
@@ -320,28 +321,23 @@ impl MeshtalReader {
         }
     }
 
-    // fn check_precision_issues(&self) {
-    //     for mesh in &self.mesh_list {
-    //         if mesh.emesh.len() > 0 {
-    //             let lhs = mesh.emesh[..mesh.emesh().len() - 1];
-    //             let rhs = mesh.emesh[1..mesh.emesh().len()];
+    /// Warnings for poor precision emesh/tmesh values in output files
+    fn warn_precision_issues(&self) {
+        for mesh in &self.mesh_list {
+            if !mesh.emesh.is_empty() && Self::has_duplicate_values(&mesh.emesh) {
+                warn!("Warning: Duplicate EMESH values in fmesh {}", mesh.id);
+            }
 
-    //             let a = std::iter::zip(lhs, rhs).any(|(l, r)| l == r);
-    //         }
+            if !mesh.tmesh.is_empty() && Self::has_duplicate_values(&mesh.tmesh) {
+                warn!("Warning: Duplicate TMESH values in fmesh {}", mesh.id);
+            }
+        }
+    }
 
-    //         let mut uniq = HashSet::new();
-    //         if !mesh.emesh.iter().all(|x| uniq.insert(x)) {
-    //             warn!("Warning: Duplicate EMESH values in fmesh{}", mesh.id);
-    //             warn!(" - Due to poor precision in meshtal file format");
-    //         }
-
-    //         uniq.clear();
-    //         if !mesh.emesh.iter().all(|x| uniq.insert(x)) {
-    //             warn!("Warning: Duplicate TMESH values in fmesh{}", mesh.id);
-    //             warn!(" - Due to poor precision in meshtal file format");
-    //         }
-    //     }
-    // }
+    /// Checks sorted Vec<f64> for duplicate entries for emesh/tmesh
+    fn has_duplicate_values(vector: &[f64]) -> bool {
+        std::iter::zip(&vector[..vector.len() - 1], &vector[1..vector.len()]).any(|(l, r)| l == r)
+    }
 }
 
 /// Preprocessing of tally formats
