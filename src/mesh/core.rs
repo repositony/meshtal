@@ -72,7 +72,7 @@ use clap::ValueEnum;
 /// // Find the maximum of only the first three voxels
 /// assert_eq!(Mesh::maximum(&voxels[0..3]), 18.0);
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mesh {
     /// Mesh tally number e.g fmesh104 => id = 104
     pub id: u32,
@@ -1056,63 +1056,6 @@ impl Mesh {
         } else {
             Err(anyhow!("Index {t_idx} outside range of time groups"))
         }
-    }
-
-    // todo see if this is even needed, seems same as exclusive
-    /// Generic function for finding bins, not to be used with energy/time
-    ///
-    /// Given an arbitrary value, find the index of the containing bin from a
-    /// list of bin edges. Useful for locating points in a mesh.
-    ///
-    /// ```rust
-    /// # use meshtal::mesh::Mesh;
-    /// let bin_edges = vec![1.0, 2.0, 3.0, 4.0, 5.0];
-    ///
-    /// // Find the bin a value would be in
-    /// assert_eq!(Mesh::find_bin_idx(&bin_edges, 3.5).unwrap(), 2);
-    ///
-    /// // Values outside the bin bounds are an error case
-    /// assert!(Mesh::find_bin_idx(&bin_edges, 0.0).is_err());
-    /// assert!(Mesh::find_bin_idx(&bin_edges, 6.0).is_err());
-    ///
-    /// // Bins are assumed to be low <= x < high, except for the upper boundary
-    /// assert_eq!(Mesh::find_bin_idx(&bin_edges, 1.0).unwrap(), 0);
-    /// assert_eq!(Mesh::find_bin_idx(&bin_edges, 3.0).unwrap(), 2);
-    /// assert_eq!(Mesh::find_bin_idx(&bin_edges, 5.0).unwrap(), 3);
-    /// ```
-    pub fn find_bin_idx(edges: &[f64], value: f64) -> Result<usize> {
-        // # generic method for finding index of a value in a list of bin edges
-        if edges.len() < 2 {
-            return Err(anyhow!("Fewer than 2 bin edges provided"));
-        } else if value < edges[0] || &value > edges.last().unwrap() {
-            return Err(anyhow!(
-                "Value out of range {:.2e} - {:.2e}",
-                edges[0],
-                edges.last().unwrap()
-            ));
-        }
-
-        // special case for including values exactly on top boundary
-        if &value == edges.last().unwrap() {
-            return Ok(edges.len() - 2);
-        }
-
-        // otherwise bother finding the index of the bin containing this value
-        let iter = edges[..edges.len() - 1].iter().zip(edges[1..].iter());
-
-        for (idx, (low, high)) in iter.enumerate() {
-            if &value >= low && &value < high {
-                return Ok(idx);
-            }
-        }
-
-        // if not found give up and suggest the range
-        Err(anyhow!(
-            "Value {} not found in range {:.2e} to {:.2e}",
-            value,
-            edges[0],
-            edges.last().unwrap()
-        ))
     }
 }
 
