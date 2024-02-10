@@ -28,19 +28,24 @@ rstest = "0.18.2"
 [[bin]]
 name = "mesh2vtk"
 path = "src/bin/mesh2vtk.rs"
+doc = false
 
 [[bin]]
 name = "mesh2ww"
 path = "src/bin/mesh2ww.rs"
+doc = false
 
 [[bin]]
 name = "pointextract"
 path = "src/bin/pointextract.rs"
+doc = false
 
 [[bin]]
 name = "splitmesh"
 path = "src/bin/splitmesh.rs"
+doc = false
 
 [[bin]]
 name = "posvol"
 path = "src/bin/posvol.rs"
+doc = false

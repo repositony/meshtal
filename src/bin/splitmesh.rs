@@ -1,44 +1,4 @@
 //! Command line tool to split up meshtal files
-//!
-//! Splits up all meshes found in a meshtal file into their own individual
-//! files.
-//!
-//! This is very useful for processing large meshtal files with multiple
-//! tallies, or for just reducing file sizes to a minimum for post-processing.
-//!
-//! # Usage
-//!
-//! ```text
-//! Usage: splitmesh <meshtal> [options]
-//! ```
-//!
-//! Help is printed with the `-h` flag, and `--help` will show examples, default
-//! values, examples, and any important behaviour.
-//!
-//! ## Options
-//!
-//! By default, every tally found in the file is splt into individual files.
-//!
-//! ### > How to choose specific tallies
-//!
-//! Use the `--tallies`  option to specify one or more tallies to be separated
-//! out. Invalid entries are simply ignored.
-//!
-//! ```bash
-//! # Extract only tallies with ID 104, 204, and 504 from the primary file
-//! splitmesh /path/to/meshtal.msht --tallies 104 204 504
-//! ```
-//!
-//! ### > How to change the file names
-//!
-//! The name of the output files is appended with the tally number as
-//! `<output>_<id>.msht`. Output defaults to `fmesh`, but this may be changed.
-//!
-//! ```bash
-//! # Change output file names to "mymesh_<id>.msht"
-//! splitmesh /path/to/meshtal.msht --output mymesh
-//! ```
-//!
 #![doc(hidden)]
 
 // standard libraries

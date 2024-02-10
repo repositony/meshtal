@@ -2,6 +2,9 @@
 //!
 //! A collection of analysis tools for interacting with MCNP meshtal files
 //!
+//! For command line tool usage please see the
+//! [README](https://github.com/repositony/meshtal).
+//!
 //! ## Installation
 //!
 //! Direct install from github:
@@ -60,8 +63,8 @@
 //!
 //! Anyone reading these docs is likely familiar with Rust, so between us the
 //! command line tools are purely for colleagues and convenience. The crate
-//! itself is a actually lot more useful to those who use Rust, since the
-//! challenge with meshtal files is always trying to parse the old MCNP outputs.
+//! itself is particularly useful, since the challenge with meshtal files is
+//! always trying to parse the old MCNP outputs into something useful.
 //!
 //! This crate allows you to read any format into a struct with a one-liner, and
 //! from there you can do whatever you want with the mesh data. All mesh formats
@@ -69,12 +72,15 @@
 //!
 //! ```rust
 //! // import the crate
-//! use meshtal::read_meshtal_target;
+//! use meshtal::{read_meshtal, read_meshtal_target};
 //!
 //! // read a mesh from any of the meshtal formats
 //! let mesh = read_meshtal_target("./data/meshes/fmesh_114.msht", 114).unwrap();
 //!
-//! // now do whatever you want with it:
+//! // read ALL meshes in a meshtal file, in any combination of formats
+//! let all_meshes = read_meshtal("./data/meshes/fmesh_114.msht").unwrap();
+//!
+//! // now do whatever you want with them:
 //! //  - mess with the voxel data,
 //! //  - extract data at various points,
 //! //  - turn it into a vtk,
@@ -85,14 +91,14 @@
 //! As an overview:
 //! - The [mesh] module contains all of the relevant structures and
 //! functionality needed for most things.
-//! - The [weights] module provides ways of generating and manipulating global
-//! mesh-based weight windows.
+//! - The [weights] module turns meshes into global mesh-based weight windows
+//! with and writes to MCNP weight WWINP files.
 //! - The [vtk] module allows for writing several of the data structures to VTK
 //! formats for plotting.
 //! - The [point] module provides ways of extracting specific data of interest
 //! from various locations in a mesh.
-//! - The [posvol] module deserialises UKAEA CuV posvol files and is very useful
-//! data to have available
+//! - The [posvol] module deserialises UKAEA CuV posvol files, which contain
+//! very useful cell data.
 //!
 //! In the background, the `nom` parser combinator library allows for some
 //! extremely fast parsing, `clap` is used for command line interface, and

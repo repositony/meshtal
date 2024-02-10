@@ -1,151 +1,5 @@
 //! Command line extraction of point data from meshes
-//!
-//! Provides a quick method for finding data at specific points in a 3D mesh
-//! with support for all mesh types and geometries. For consistency with legacy
-//! tools and large numbers of points, an input file option is also supported.
-//!
-//! # Usage
-//!
-//! ```text
-//! Usage: pointextract <meshtal> <number> [options]
-//! ```
-//!
-//! Help is printed with the `-h` flag, and `--help` will show examples, default
-//! values, examples, and any important behaviour.
-//!
-//! ### Definition of a 'point'
-//!
-//! A `Point` in may be defined three ways. Using cartesian `xyz` as an example:
-//!
-//! - (x, y, z)
-//! - (energy, x, y, z)
-//! - (energy, time, x, y, z)
-//!
-//! where are `energy`/`time` groups are either a value or 'total', and `x`,
-//! `y`, `z` are the location to search for.
-//!
-//! The 'Total' group is used by default for omitted `energy` and `time` groups.
-//!
-//! Note that no matter what coordinates are provided, they are converted into
-//! the appropriate coordinate system in the background. For example, `xyz`
-//! coordinates are converted to `rzt` if the target mesh is cylindrical.
-//!
-//! Points can be retrieved in two ways:
-//!
-//! - Single point via the `-p`/`--point` argument
-//! - Multiple points via the `-f`/`--file` argument
-//!
-//! ### Single point (--point / --type)
-//!
-//! To quickly get a single point:
-//!
-//! ```bash
-//! # Find the point at (x,y,z) = (1.0, 2.0, 3.0)
-//! pointextract /path/to/meshtal.msht 104 -p 1.0 2.0 3.0
-//!
-//! # Find the same point, but for the 100.0 MeV energy group
-//! pointextract /path/to/meshtal.msht 104 -p 1.0E+02 1.0 2.0 3.0
-//!
-//! # Find the same point, but for the 'Total' energy group and 6.0e+15 time group
-//! pointextract /path/to/meshtal.msht 104 -p total 6e+15 1.0 2.0 3.0
-//! ```
-//!
-//! This works for both the `Rectangular` and `Cylindrical` mesh types.
-//!
-//! Coordinates default to being XYZ cartesian, but the `--type` argument allows
-//! this to be specified explicitly
-//!
-//! ```bash
-//! # Find the point at (r,z,t) = (1.0, 2.0, 90.0)
-//! pointextract /path/to/meshtal.msht 104 -p 1.0 2.0 0.53 --type rzt
-//! ```
-//!
-//! ### Multiple points (--file)
-//!
-//! The input file (default `points.txt`) is interpreted with the following
-//! rules for a line:
-//!
-//! | Example line               | Interpretation           |
-//! | -------------------------- | ------------------------ |
-//! | Starts with `#`            | comment                  |
-//! | `rzt`, `cyl`, `xyz`, `rec` | geometry keyword         |
-//! | 1.0 2.0 3.0                | i, j, k                  |
-//! | 1e2  1.0 2.0 3.0           | energy, i, j, k          |
-//! | 1e2 total 1.0 2.0 3.0      | energy, time, i, j, k    |
-//!
-//! Anything else is ignored. For an example file see `data/points.txt`, though
-//! a simplified input is shown below.
-//!
-//! ```bash
-//! # this is a line comment in points.txt
-//!
-//! xyz                         # points below explicitly interpreted as cartesian  
-//! 1.0 5.0 7.0                 # 'Total' energy, 'Total' time, (x, y, z)
-//! total 1.0 5.0 7.0           # 'Total' energy, 'Total' time, (x, y, z)
-//! total total 1.0 5.0 7.0     # 'Total' energy, 'Total' time, (x, y, z)
-//!
-//! rzt                         # points below explicitly interpreted as cylindrical  
-//! 4.0 1.0 5.0 0.5             #  4 MeV  energy, 'Total' time, (r, z, t)
-//! 4.0 1e16 1.0 5.0 0.5        #  4 MeV  energy,  1e16   time, (r, z, t)
-//! ```
-//!
-//! This is used as
-//!
-//! ```bash
-//! # Find all points in file
-//! pointextract /path/to/meshtal.msht 104 --file points.txt
-//! ```
-//!
-//! It is fine to mix and match coordinates in the same file because all points
-//! are converted into the appropriate coordinate system in the background.
-//!
-//! Lines that can not be parsed into a `Point` are ignored, and warnings are
-//! raised for invalid points that are outside of the mesh bounds.
-//!
-//! ### Result outputs
-//!
-//! Results are written to `results.dat` by default but this can be renamed as
-//! needed.
-//!
-//! ```bash
-//! # Search for all locations in points.txt, output results to 'myoutput.txt'
-//! pointextract /path/to/meshtal.msht 104 --file points.txt --output myoutput.txt
-//! ```
-//!
-//! These may also be written to the terminal directly with the `-d`/`--dump`
-//! flag.
-//!
-//! Both the parsed user input and search results are presented in tables. For
-//! example, a 'points.txt' file may have the following
-//!
-//! ```bash
-//! total 1.111e16 0.5 0.0 -1.9    # (energy, time, x, y, z), inside of mesh bounds
-//! total 1.111e16 50.5 0.0 -1.9   # (energy, time, x, y, z), outside of mesh bounds
-//! ```
-//!
-//! Tables show the user provided points to search for, and detail of the voxel containing these points.
-//!
-//! ```text
-//!                             Points to search
-//! id     energy        time        i_coord      j_coord      k_coord   system
-//! -----------------------------------------------------------------------------
-//! 0      Total     1.11100e+16  5.00000e-01  0.00000e+00 -1.90000e+00   xyz
-//! 1      Total     1.11100e+16  5.05000e+01  0.00000e+00 -1.90000e+00   xyz
-//!
-//!                     Voxels found (fmesh334, Rectangular)
-//! id     energy        time     i_coord   j_coord   k_coord    result    error
-//! --------------------------------------------------------------------------------
-//! 0      Total     1.11100e+16   0.500     0.000    -2.625  1.37928e-02 0.0092
-//! 1                             Not found in mesh
-//! ```
-//!
-//! Note the second point was outside of the mesh and failed, which will warn
-//! you with a `Not found in mesh` entry. Corresponding rows are numbered for
-//! convenience.
-//! *Note - long rows are really inconvenient for reading results on a lot of
-//! screens, so the choice was made to split up the two tables. A case could be
-//! made for doing somthing else with the results for easier parsing.*
-//!
+#![doc(hidden)]
 
 // standard library
 use std::fs::File;
@@ -163,7 +17,6 @@ use anyhow::{anyhow, Ok, Result};
 use clap::{arg, Parser};
 use log::*;
 
-#[doc(hidden)]
 fn main() -> Result<()> {
     // set up the command line interface and match arguments
     let cli: Cli = Cli::parse();
@@ -255,7 +108,6 @@ fn main() -> Result<()> {
 ///     in the background during the search.
 ///
 #[allow(rustdoc::invalid_rust_codeblocks)]
-#[doc(hidden)]
 #[derive(Parser, Debug)]
 #[command(
     verbatim_doc_comment,
@@ -372,7 +224,6 @@ struct Cli {
     quiet: bool,
 }
 
-#[doc(hidden)]
 fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     let path: &Path = Path::new(&cli.meshtal);
 
@@ -387,7 +238,6 @@ fn try_meshtal_read(cli: &Cli) -> Result<Mesh> {
     Ok(std::mem::take(&mut mesh[0]))
 }
 
-#[doc(hidden)]
 fn check_points(points: &[Point]) -> Result<()> {
     if points.is_empty() {
         Err(anyhow!("No valid point input found"))
@@ -396,7 +246,6 @@ fn check_points(points: &[Point]) -> Result<()> {
     }
 }
 
-#[doc(hidden)]
 fn parse_cli_point(cli: &Cli) -> Result<Point> {
     match &mut parsers::points_file_point(&cli.point.join(" ")) {
         nom::IResult::Ok(data) => {
@@ -414,7 +263,6 @@ fn parse_cli_point(cli: &Cli) -> Result<Point> {
 /// Write all results to a file
 ///
 /// This will include those that failed for the user's reference.
-#[doc(hidden)]
 fn results_to_file(
     path: &str,
     mesh: &Mesh,
@@ -434,14 +282,12 @@ fn results_to_file(
 /// Log the results to console
 ///
 /// Will be exactly the same as the table that gets dumped to file
-#[doc(hidden)]
 fn results_to_console(mesh: &Mesh, points: &[Point], voxels: &[Option<Voxel>], description: &str) {
     println!("\n{}", points_table(points));
     println!("\n\n{}", voxels_table(mesh, voxels, description));
 }
 
 /// generates a banner for cli tool consistency
-#[doc(hidden)]
 fn banner() -> String {
     let mut s = f!("{:-<1$}\n", "", 70);
     s += &f!("{:^70}\n", "Meshtal :: PointExtract");
@@ -449,7 +295,6 @@ fn banner() -> String {
     s
 }
 
-#[doc(hidden)]
 fn logging_init(verbosity: u8, quiet: bool) {
     stderrlog::new()
         .modules(vec![
@@ -467,7 +312,6 @@ fn logging_init(verbosity: u8, quiet: bool) {
         .unwrap();
 }
 
-#[doc(hidden)]
 fn points_table(points: &[Point]) -> String {
     let mut s = target_heading();
     s += &f!("\n{}\n", target_columns());
@@ -479,7 +323,6 @@ fn points_table(points: &[Point]) -> String {
     s
 }
 
-#[doc(hidden)]
 fn voxels_table(mesh: &Mesh, voxels: &[Option<Voxel>], description: &str) -> String {
     let mut s = voxel_heading(description);
     s += &f!("\n{}\n", voxel_columns());
@@ -491,12 +334,10 @@ fn voxels_table(mesh: &Mesh, voxels: &[Option<Voxel>], description: &str) -> Str
     s
 }
 
-#[doc(hidden)]
 fn target_heading() -> String {
     f!("{:^72}", "Points to search")
 }
 
-#[doc(hidden)]
 fn target_columns() -> String {
     let mut s = f!("{:^6}", "id");
     s += &f!("{:^13}", "energy");
@@ -508,7 +349,6 @@ fn target_columns() -> String {
     s
 }
 
-#[doc(hidden)]
 fn target_row(point: &Point) -> String {
     let mut s = f!("{:^13}", f!("{}", point.e));
     s += &f!("{:^13}", f!("{}", point.t));
@@ -519,13 +359,11 @@ fn target_row(point: &Point) -> String {
     s
 }
 
-#[doc(hidden)]
 fn voxel_heading(description: &str) -> String {
     let s = f!("Voxels found ({description})");
     f!("{:^92}", s)
 }
 
-#[doc(hidden)]
 fn voxel_columns() -> String {
     let mut s = f!("{:^6}", "id");
     s += &f!("{:^13}", "energy");
@@ -538,7 +376,6 @@ fn voxel_columns() -> String {
     s
 }
 
-#[doc(hidden)]
 fn voxel_row(mesh: &Mesh, voxel: &Option<Voxel>) -> String {
     match voxel {
         None => f!("{:^92}", "Not found in mesh"),
