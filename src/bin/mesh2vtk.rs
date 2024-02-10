@@ -16,7 +16,7 @@
 //!
 //! By default, the results of every time/energy bin are extracted
 //!
-//! ### > How to include errors
+//! ### How to include errors
 //!
 //! Corresponding uncertainty meshes are optional in case of large meshtal files.
 //!
@@ -25,7 +25,7 @@
 //! mesh2vtk /path/to/meshtal.msht 104 --errors
 //! ```
 //!
-//! ### > How to only use the 'Total' energy/time group?
+//! ### How to only use the 'Total' energy/time group
 //!
 //! Often only the `Total` energy/time bins are of interest, and a quick way of
 //! only converting this subset is provided.
@@ -35,7 +35,7 @@
 //! mesh2vtk /path/to/meshtal.msht 104 --total
 //! ```
 //!
-//! ### > How to choose specific energy/time groups
+//! ### How to choose specific energy/time groups
 //!
 //! If specific energy or time groups are required,
 //!
@@ -53,7 +53,7 @@
 //! cards. i.e the energy group `1.0` corresponds to the `0.0>=E<1.0` bin,
 //! though in reality 1 MeV particle would end up in the next group up.*
 //!
-//! ### > How to rescale all values
+//! ### How to rescale all values
 //!
 //! Mcnp normalises everything so it is often the case that the results must be
 //! rescaled to provide physical values.
@@ -86,7 +86,7 @@
 //!
 //! ## VTK options
 //!
-//! ### > How to change the output file name
+//! ### How to change the output file name
 //!
 //! By default the file prefix is `fmesh`, so the output files will be
 //! `fmesh_<number>.vtk`. This may be changed as needed.
@@ -96,7 +96,7 @@
 //! mesh2vtk /path/to/meshtal.msht 104 --output myvtk
 //! ```
 //!
-//! ### > How to choose a Vtk format
+//! ### How to choose a Vtk format
 //!
 //! Most useful may be the ability to decide on output formats. XML and legacy
 //! formats are supported, with both ascii and binary variants.
@@ -106,7 +106,7 @@
 //! mesh2vtk /path/to/meshtal.msht 104 --format legacy-binary
 //! ```
 //!
-//! ### > How to specify compression and byte order
+//! ### How to specify compression and byte order
 //!
 //! For more advanced usage, things like byte ordering and xml compression
 //! methods are also configurable.
