@@ -257,37 +257,7 @@ pub enum VtkFormat {
 ///
 /// # General properties
 ///
-/// ## Targeting specific voxel groups
 ///
-/// **Important: By default all energy groups are included in the vtk**.
-///
-/// Specific energy groups can be provided to reduce file sizes. This is also
-/// especially useful if only certain groups are of interest.
-///
-/// For example, often only the `Total` groups are wanted:
-///
-/// ```rust
-/// # use meshtal::vtk::{MeshToVtk};
-/// # use meshtal::mesh::{Group};
-/// // Choose only the 'Total' of each energy group
-/// let mesh_convertor = MeshToVtk::builder()
-///     .energy_groups(vec![Group::Total])
-///     .time_groups(vec![Group::Total])
-///     .build();
-/// ```
-///
-/// For specific energy/time groups:
-///
-/// ```rust
-/// # use meshtal::vtk::{MeshToVtk};
-/// # use meshtal::mesh::{Group};
-/// // Choose specific energy and time groups
-/// let mesh_convertor = MeshToVtk::builder()
-///     .energy_groups(vec![Group::Value(1.0),
-///                         Group::Value(20.0),
-///                         Group::Total])
-///     .build();
-/// ```
 ///
 /// ## Error meshes
 ///
@@ -300,6 +270,23 @@ pub enum VtkFormat {
 /// // Include error meshes for each result
 /// let mesh_convertor = MeshToVtk::builder()
 ///     .include_errors(true)
+///     .build();
+/// ```
+/// ## Targeting specific voxel groups
+///
+/// **Important: By default all energy groups are included in the vtk**.
+///
+/// Specific energy groups can be provided to reduce file sizes. This is also
+/// especially useful if only certain groups are of interest.
+///
+/// For specific energy/time groups:
+///
+/// ```rust
+/// # use meshtal::vtk::{MeshToVtk};
+/// # use meshtal::mesh::{Group};
+/// // Choose specific energy and time groups by group index
+/// let mesh_convertor = MeshToVtk::builder()
+///     .energy_groups(vec![0, 1, 2, 6])
 ///     .build();
 /// ```
 ///
@@ -877,8 +864,8 @@ impl MeshToVtk {
 ///
 /// // Make a new builder, configure parameters, and convert the mesh
 /// let mesh_convertor = MeshToVtk::builder()
-///     .energy_groups(vec![Group::Total])
-///     .time_groups(vec![Group::Value(1e6), Group::Total])
+///     .energy_groups(vec![0])
+///     .time_groups(vec![2, 5])
 ///     .include_errors(true)
 ///     .resolution(3)
 ///     .byte_order(ByteOrder::LittleEndian)
