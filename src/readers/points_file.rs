@@ -27,7 +27,7 @@ impl PointsFileReader {
 
     /// Parses all mesh data from a mcnp meshtal file
     ///
-    /// Any whitespace at the beginnign of the line is trimmed. Assumes
+    /// Any whitespace at the beginning of the line is trimmed. Assumes
     /// coordinates given are cartesian xyz unless specified otherwise.
     pub fn parse(&mut self, path: &Path) -> Result<Vec<Point>> {
         // parse the data depending on Format type
