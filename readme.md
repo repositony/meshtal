@@ -127,13 +127,29 @@ mesh2vtk /path/to/meshtal.msht 104 --total
 
 #### How to choose specific energy/time groups
 
-If specific energy or time groups are required,
+If specific energy or time groups are required they can be filtered by group
+index.
 
 ```bash
-# Extract specific energy and time groups
-mesh2vtk /path/to/meshtal.msht 104    \
-        --energy 1.0 1e5              \
-        --time 1e12 total
+# Extract specific energy and time groups by index
+mesh2vtk /path/to/meshtal.msht 104  \
+            --energy 0 2 6          \
+            --time 1 total
+```
+
+The keyword `total` can be used for the 'Total' energy/time groups for
+convenience.
+
+Filtering by index avoids the precision issues that accompany the extremely
+limited MCNPv6.2 output formatting. However, if you really want to use absolute
+values in units of MeV and shakes then include the `--absolute` flag.
+
+```bash
+# Extract specific energy and time groups by MeV/shakes values
+mesh2vtk /path/to/meshtal.msht 104  \
+            --energy 1.0 20.0 1e2   \
+            --time 1e12 total       \
+            --absolute
 ```
 
 For intuitive use, the groups correspond with values defined on the `EMESH`
