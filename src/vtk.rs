@@ -464,15 +464,15 @@ impl MeshToVtk {
         // ok to use indexing as already checked by this point
 
         let energy_prefix = match mesh.energy_groups()[e_idx] {
-            Group::Value(e) => f!("Energy[{e_idx}] {e:.2E} MeV"),
-            Group::Total => f!("Energy[{e_idx}] Total"),
+            Group::Value(e) => f!("E{e_idx}_{e:.2E}MeV"),
+            Group::Total => f!("E{e_idx}_Total"),
         };
 
         let time_prefix = match mesh.time_groups()[t_idx] {
-            Group::Value(t) => f!(", Time[{t_idx}] {t:.2E} shakes"),
+            Group::Value(t) => f!("-T{t_idx}_{t:.2E}shakes"),
             Group::Total => {
                 if mesh.tbins() > 1 {
-                    f!(", Time[{t_idx}] Total")
+                    f!("-T{t_idx}_Total")
                 } else {
                     "".to_string()
                 }
@@ -555,7 +555,7 @@ impl MeshToVtk {
                 // do the same for the errors if they are to be included
                 if self.include_errors {
                     let cell_data = DataArray {
-                        name: self.group_name(mesh, *e_idx, *t_idx) + ", error",
+                        name: self.group_name(mesh, *e_idx, *t_idx) + "-error",
                         elem: ElementType::Scalars {
                             num_comp: 1,
                             lookup_table: None,
@@ -791,7 +791,7 @@ impl MeshToVtk {
                 // do the same for the errors if they are to be included
                 if self.include_errors {
                     let cell_data = DataArray {
-                        name: self.group_name(mesh, *e_idx, *t_idx) + ", error",
+                        name: self.group_name(mesh, *e_idx, *t_idx) + "-error",
                         elem: ElementType::Scalars {
                             num_comp: 1,
                             lookup_table: None,
